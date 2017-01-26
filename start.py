@@ -5,7 +5,7 @@ import re
 # subprocess : Biblioteca para capturar comandos del sistema
 # Desde la version python 2.4 no se recomienda la biblioteca "os"
 # Ping a Broadcast durante 3 segundos para actualizar la cache ARP
-subprocess.Popen(["ping","10.0.0.255","-b","-I","eth0","-w","3"], stdout=subprocess.PIPE).communicate()[0]
+subprocess.Popen(["ping","10.0.0.255","-b","-I","eth0","-c","3"], stdout=subprocess.PIPE).communicate()[0]
 subprocess.Popen(["sleep","10"], stdout=subprocess.PIPE).communicate()[0]
 output = subprocess.Popen(["arp"], stdout=subprocess.PIPE).communicate()[0]
 
@@ -34,8 +34,7 @@ concatJson['raspberryPi'] = listJson
 resJson = json.dumps(concatJson)
 
 def saveJson():
-    # Con la opción 'a' editamos el fichero  e introducimos valores al final del fichero
-    # Si no existe, lo crea
+    # Con la opcion 'w' editamos el fichero. Si no existe, lo crea
     archi=open('start.json','w')
     archi.write(resJson)
     archi.close()
