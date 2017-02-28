@@ -50,7 +50,6 @@ class RpCloud(object):
             return "Ok"
         # Si no encuentra el Hash de usuario, devuelve "None"
 
-
 #########################################
 ################TEST#####################
 ########################################
@@ -58,8 +57,8 @@ class RpCloud(object):
 ## ENTRADA ##
 rpc = JsonRpc()
 rpc['login'] = RpCloud().login
-#resultLogin = rpc({"jsonrpc": "2.0", "method": "login", "params": {"user": "leo", "password": "abc123."}, "id": "login"})
-#print(resultLogin)
+resultLogin = rpc({"jsonrpc": "2.0", "method": "login", "params": {"user": "leo", "password": "abc123."}, "id": "login"})
+print(resultLogin)
 ## SALIDA ##
 ## {'jsonrpc': '2.0', 'id': 'login', 'result': '6200b907743c3270995860bb4c0423adb7c4c7d8adee2dcdababebb467f2a6d775ba2460e263ef5fb50ce8dc041140ea432367c3d6a9393f9fbae74b44740797:8b5e0bfb6c9e4a018b54acbe15f618e6'}
 
