@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from connection import MongoDBconnection
+from Mongo.connection import MongoDBconnection
 import pdb
 
 

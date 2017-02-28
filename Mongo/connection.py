@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pymongo
-from settings import MongoConfig
+from Mongo.settings import MongoConfig
 
 
 class MongoDBconnection(object):
