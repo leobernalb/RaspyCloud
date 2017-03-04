@@ -25,15 +25,15 @@ class RpCloud(object):
         return self.hash
 
 
-    def checkPassword(self, hash, user_password):
+    def checkPassword(self, token, user_password):
         # Split por : para obtener el salt
-        password, salt = hash.split(':')
+        password, salt = token.split(':')
         # Devuelve TRUE or FALSE en jsonRPC
         return password == hashlib.sha512(salt.encode() + user_password.encode()).hexdigest()
 
-    def checkLogin(self, user, hash):
+    def checkLogin(self, token):
         conn = RaspberryDB()
-        searched = conn.searchLogin(collection="login", user=user, hash=hash)
+        searched = conn.searchLogin(collection="login",  hash=token)
         # Si la busqueda es [] devuelve False
         if len(searched) == 0:
             return False
@@ -41,10 +41,10 @@ class RpCloud(object):
             # Si la busqueda tiene 1 elemento, devuelve True
             return True
 
-    def logout(self, hash):
+    def logout(self, token):
         # Encuentra elemento en BD y elimina
         conn = RaspberryDB()
-        foundUser = conn.deleteElement(collection="login", hash=hash)
+        foundUser = conn.deleteElement(collection="login", hash=token)
         # Si encuentra el hash de usuario y lo borra, devuelve "OK"
         if foundUser != None:
             return "Ok"
@@ -57,15 +57,15 @@ class RpCloud(object):
 ## ENTRADA ##
 rpc = JsonRpc()
 rpc['login'] = RpCloud().login
-resultLogin = rpc({"jsonrpc": "2.0", "method": "login", "params": {"user": "leo", "password": "abc123."}, "id": "login"})
-print(resultLogin)
+#resultLogin = rpc({"jsonrpc": "2.0", "method": "login", "params": {"user": "leo", "password": "abc123."}, "id": "login"})
+#print(resultLogin)
 ## SALIDA ##
 ## {'jsonrpc': '2.0', 'id': 'login', 'result': '6200b907743c3270995860bb4c0423adb7c4c7d8adee2dcdababebb467f2a6d775ba2460e263ef5fb50ce8dc041140ea432367c3d6a9393f9fbae74b44740797:8b5e0bfb6c9e4a018b54acbe15f618e6'}
 
 ########################################
 ## ENTRADA ##
 rpc['checkPassword'] = RpCloud().checkPassword
-#print(rpc({"jsonrpc": "2.0", "method": "checkPassword", "params": {"hash": "10becdae5417723d7478a354471428844dd78edad1ef77db23ecd09e1a98483f0f3ada4c8363f4a8c1be4d03037540568b6a5c1c5c0e693081dd03c9afeb449e:7764913e770c4083a224c06bbb88c547",
+#print(rpc({"jsonrpc": "2.0", "method": "checkPassword", "params": {"token": "10becdae5417723d7478a354471428844dd78edad1ef77db23ecd09e1a98483f0f3ada4c8363f4a8c1be4d03037540568b6a5c1c5c0e693081dd03c9afeb449e:7764913e770c4083a224c06bbb88c547",
 # "user_password": "abc123."}, "id": "checkPassword"}))
 ## SALIDA ##
 ## {'jsonrpc': '2.0', 'id': 'checkPassword', 'result': True}
@@ -75,7 +75,7 @@ rpc['checkPassword'] = RpCloud().checkPassword
 ## ENTRADA ##
 rpc['checkLogin'] = RpCloud().checkLogin
 #print(rpc({"jsonrpc": "2.0", "method": "checkLogin", "params": {"user": "leo",
-# "hash": "10becdae5417723d7478a354471428844dd78edad1ef77db23ecd09e1a98483f0f3ada4c8363f4a8c1be4d03037540568b6a5c1c5c0e693081dd03c9afeb449e:7764913e770c4083a224c06bbb88c547"}, "id": "checkLogin"}))
+# "token": "10becdae5417723d7478a354471428844dd78edad1ef77db23ecd09e1a98483f0f3ada4c8363f4a8c1be4d03037540568b6a5c1c5c0e693081dd03c9afeb449e:7764913e770c4083a224c06bbb88c547"}, "id": "checkLogin"}))
 ## SALIDA ##
 #{'jsonrpc': '2.0', 'id': 'checkLogin', 'result': True}
 #{'jsonrpc': '2.0', 'id': 'checkLogin', 'result': False}
@@ -83,7 +83,7 @@ rpc['checkLogin'] = RpCloud().checkLogin
 ########################################
 ## ENTRADA ##
 rpc['logout'] = RpCloud().logout
-# print(rpc({"jsonrpc": "2.0", "method": "logout", "params": {"hash":"9b34b05476f9059eca6f618cced59aefe9ab789da990318fc6927e407267b2c671af21696bb43f8f5af99cac60c0dc87b201078608366c4cc925020ead87a8dd:52083f84890840069ed7e075d7e0b65a"}, "id": "logout"}))
+# print(rpc({"jsonrpc": "2.0", "method": "logout", "params": {"token":"9b34b05476f9059eca6f618cced59aefe9ab789da990318fc6927e407267b2c671af21696bb43f8f5af99cac60c0dc87b201078608366c4cc925020ead87a8dd:52083f84890840069ed7e075d7e0b65a"}, "id": "logout"}))
 ## SALIDA ##
 # {'jsonrpc': '2.0', 'id': 'logout', 'result': 'Ok'}
 # {'jsonrpc': '2.0', 'id': 'logout', 'result': None}

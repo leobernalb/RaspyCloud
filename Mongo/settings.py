@@ -7,7 +7,7 @@ config = {
     "PASSWORD": None,
     "HOST": "localhost",
     "PORT": 27017,
-    "DB_NAME": "rpCloud",
+    "DB_NAME": "raspyCloud",
 }
 
 
