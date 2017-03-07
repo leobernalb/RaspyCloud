@@ -1,5 +1,5 @@
-import sys
-sys.path.append("../")
+import sysRp
+sysRp.path.append("../")
 from Mongo.helper import RaspberryDB
 import hashlib, uuid
 from jsonrpc2 import JsonRpc
