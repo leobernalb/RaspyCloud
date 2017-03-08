@@ -1,5 +1,5 @@
-import sysRp
-sysRp.path.append("../")
+import sys
+sys.path.append("../")
 from Mongo.helper import RaspberryDB
 import hashlib, uuid
 from jsonrpc2 import JsonRpc
@@ -12,6 +12,7 @@ class RpCloud(object):
         """Attributes"""
         # Generamos una semilla distinta para cada usuario
         self.salt = uuid.uuid4().hex
+
 
     def login(self, user="admin", password="admin"):
         conn = RaspberryDB()
@@ -31,6 +32,7 @@ class RpCloud(object):
         # Devuelve TRUE or FALSE en jsonRPC
         return password == hashlib.sha512(salt.encode() + user_password.encode()).hexdigest()
 
+
     def checkLogin(self, token):
         conn = RaspberryDB()
         searched = conn.searchLogin(collection="login",  hash=token)
@@ -41,6 +43,7 @@ class RpCloud(object):
             # Si la busqueda tiene 1 elemento, devuelve True
             return True
 
+
     def logout(self, token):
         # Encuentra elemento en BD y elimina
         conn = RaspberryDB()
@@ -49,6 +52,10 @@ class RpCloud(object):
         if foundUser != None:
             return "Ok"
         # Si no encuentra el Hash de usuario, devuelve "None"
+
+
+
+
 
 #########################################
 ################TEST#####################
@@ -65,7 +72,7 @@ rpc['login'] = RpCloud().login
 ########################################
 ## ENTRADA ##
 rpc['checkPassword'] = RpCloud().checkPassword
-#print(rpc({"jsonrpc": "2.0", "method": "checkPassword", "params": {"token": "10becdae5417723d7478a354471428844dd78edad1ef77db23ecd09e1a98483f0f3ada4c8363f4a8c1be4d03037540568b6a5c1c5c0e693081dd03c9afeb449e:7764913e770c4083a224c06bbb88c547",
+#print(rpc({"jsonrpc": "2.0", "method": "checkPassword", "params": {"token": "c07f4789cd9b3338bf35ea21ff353f3bd181c528d8e980dd27fc0ee10143c7307b15bc796bf20ee0a9743a7d61ae2e0dc093ad034afc6a16b62f207060fe925b:d45774ad1dae49d48bcb795cb0d9372d",
 # "user_password": "abc123."}, "id": "checkPassword"}))
 ## SALIDA ##
 ## {'jsonrpc': '2.0', 'id': 'checkPassword', 'result': True}
@@ -74,8 +81,7 @@ rpc['checkPassword'] = RpCloud().checkPassword
 ########################################
 ## ENTRADA ##
 rpc['checkLogin'] = RpCloud().checkLogin
-#print(rpc({"jsonrpc": "2.0", "method": "checkLogin", "params": {"user": "leo",
-# "token": "10becdae5417723d7478a354471428844dd78edad1ef77db23ecd09e1a98483f0f3ada4c8363f4a8c1be4d03037540568b6a5c1c5c0e693081dd03c9afeb449e:7764913e770c4083a224c06bbb88c547"}, "id": "checkLogin"}))
+#print(rpc({"jsonrpc": "2.0", "method": "checkLogin", "params": {"token": "041c65e06039771eee97c0f8b41d678a7837dd48c0d189a146cd4472d5af749969d6f59af8a706170dff1c6473217c6ae9c172b6d33a057866b8746ffed00f96:0059d447166048ad845bf05c70732284"}, "id": "checkLogin"}))
 ## SALIDA ##
 #{'jsonrpc': '2.0', 'id': 'checkLogin', 'result': True}
 #{'jsonrpc': '2.0', 'id': 'checkLogin', 'result': False}
@@ -83,7 +89,8 @@ rpc['checkLogin'] = RpCloud().checkLogin
 ########################################
 ## ENTRADA ##
 rpc['logout'] = RpCloud().logout
-# print(rpc({"jsonrpc": "2.0", "method": "logout", "params": {"token":"9b34b05476f9059eca6f618cced59aefe9ab789da990318fc6927e407267b2c671af21696bb43f8f5af99cac60c0dc87b201078608366c4cc925020ead87a8dd:52083f84890840069ed7e075d7e0b65a"}, "id": "logout"}))
+#print(rpc({"jsonrpc": "2.0", "method": "logout", "params": {"token":"041c65e06039771eee97c0f8b41d678a7837dd48c0d189a146cd4472d5af749969d6f59af8a706170dff1c6473217c6ae9c172b6d33a057866b8746ffed00f96:0059d447166048ad845bf05c70732284"}, "id": "logout"}))
 ## SALIDA ##
 # {'jsonrpc': '2.0', 'id': 'logout', 'result': 'Ok'}
 # {'jsonrpc': '2.0', 'id': 'logout', 'result': None}
+
