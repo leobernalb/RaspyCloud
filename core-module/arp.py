@@ -55,4 +55,3 @@ rpc['getArpTable'] = Arp().getTable
 ## SALIDA ##
 #{'id': 'getArpTable', 'result': [b'gateway ether 54:67:51:96:0e:bb 10.0.0.13 eth0', b'gateway ether b8:27:eb:db:dd:97 10.0.0.11 eth0', b'Address HWtype HWaddress Flags Mask Iface'], 'jsonrpc': '2.0'}
 # #{'jsonrpc': '2.0', 'id': 'getArpTable', 'result': 'Invalid Token'}
-
