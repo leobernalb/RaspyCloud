@@ -108,6 +108,29 @@ class SysRp(object):
             return "Invalid Token"
 
 
+    def reboot(self, token, hostname):
+
+
+        checked = self.rP.checkLogin(token)
+        if(checked):
+            # Leemos el contenido de start.json
+            jsonToPython = json.loads(open('../Static/start.json').read())
+
+            # Vamos hacer la traduccion de hostname -- ip.
+            # Recorremos el array de raspberry
+            for pi in jsonToPython.get("raspberryPi"):
+
+                if (pi.get("hostname") == hostname):
+                    dnsIp2 = pi.get("ip")
+
+            subprocess.Popen(["rsh", dnsIp2, "reboot"], stdout=subprocess.PIPE).communicate()[0]
+
+            return "Done"
+        else:
+            return "Invalid Token"
+
+
+
 #########################################
 ################TEST#####################
 ########################################
@@ -121,8 +144,8 @@ rpc['getHostname'] = SysRp().getHostname
 
 ########################################
 ## ENTRADA ##
-rpc['generateJson'] = SysRp().generateJson
 rpc['getArpTable'] = Arp().getTable
+rpc['generateJson'] = SysRp().generateJson
 tableARP = rpc({"jsonrpc": "2.0", "method": "getArpTable", "params": {"token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "getArpTable"})
 GeneratedJson = rpc({"jsonrpc": "2.0", "method": "generateJson", "params": {"tableArp": tableARP, "token":"8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "generateJson"})
 #print(GeneratedJson)
@@ -141,7 +164,15 @@ rpc['storageJson'] = SysRp().storageJson
 ########################################
 ## ENTRADA ##
 rpc['setHostname'] = SysRp().setHostname
-#print(rpc({"jsonrpc": "2.0", "method": "setHostname", "params": {"hostnameOld": "rpi001", "hostnameNew": "rpi111", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "setHostname"}))
+#print(rpc({"jsonrpc": "2.0", "method": "setHostname", "params": {"hostnameOld": "rpi111", "hostnameNew": "rpi001", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "setHostname"}))
 ## SALIDA ##
 #{'id': 'setHostname', 'result': 'Done', 'jsonrpc': '2.0'}
 #{'jsonrpc': '2.0', 'id': 'setHostname', 'result': 'Invalid Token'}
+
+########################################
+## ENTRADA ##
+rpc['reboot'] = SysRp().reboot
+#print(rpc({"jsonrpc": "2.0", "method": "reboot", "params": {"hostname": "rpi111", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "reboot"}))
+## SALIDA ##
+#{'id': 'reboot', 'result': 'Done', 'jsonrpc': '2.0'}
+#{'jsonrpc': '2.0', 'id': 'reboot', 'result': 'Invalid Token'}
