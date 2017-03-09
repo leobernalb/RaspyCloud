@@ -1,3 +1,4 @@
+from subprocess import Popen, PIPE
 import subprocess
 import sys
 sys.path.append("../")
@@ -31,9 +32,31 @@ class SysRp(object):
 
 
 
-    def setHotname(self, token, ip, hostname):
+    def setHostname(self, token, hostnameOld, hostnameNew):
 
-        pass
+        checked = self.rP.checkLogin(token)
+
+        if(checked):
+            # Leemos el contenido de start.json
+            jsonToPython = json.loads(open('../Static/start.json').read())
+
+            # Vamos hacer la traduccion de hostname -- ip.
+            # Recorremos el array de raspberry
+            for pi in jsonToPython.get("raspberryPi"):
+
+                if(pi.get("hostname") == hostnameOld):
+
+                    dnsIp = pi.get("ip")
+
+            # Cambia el /etc/hostname
+            subprocess.Popen(["rsh", dnsIp, "echo", hostnameNew, " > /etc/hostname"], stdout=subprocess.PIPE).communicate()[0]
+            # Sustituye la linea que empieza por ^127.0.1.1 nombreViejo por 127.0.1.1 nombreNuevo
+            subprocess.Popen(["rsh", dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "", "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
+
+            return "Done"
+        else:
+            return "Invalid Token"
+
 
 
 
@@ -76,7 +99,7 @@ class SysRp(object):
         if(checked):
 
             # Con la opcion 'w' editamos el fichero. Si no existe, lo crea
-            archi = open('start.json', 'w')
+            archi = open('../Static/start.json', 'w')
             archi.write(json.get("result"))
             archi.close()
 
@@ -114,3 +137,11 @@ rpc['storageJson'] = SysRp().storageJson
 ## SALIDA ##
 #{'id': 'storageJson', 'result': 'Done', 'jsonrpc': '2.0'}
 #{'jsonrpc': '2.0', 'id': 'storageJson', 'result': 'Invalid Token'}
+
+########################################
+## ENTRADA ##
+rpc['setHostname'] = SysRp().setHostname
+#print(rpc({"jsonrpc": "2.0", "method": "setHostname", "params": {"hostnameOld": "rpi001", "hostnameNew": "rpi111", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "setHostname"}))
+## SALIDA ##
+#{'id': 'setHostname', 'result': 'Done', 'jsonrpc': '2.0'}
+#{'jsonrpc': '2.0', 'id': 'setHostname', 'result': 'Invalid Token'}

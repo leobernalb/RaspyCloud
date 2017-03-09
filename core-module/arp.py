@@ -16,7 +16,7 @@ class Arp(object):
         checked = self.rP.checkLogin(token)
         if(checked):
             print({'jsonrpc': '2.0', 'result': 'In process', 'id': 'broadcast'})
-            subprocess.Popen(["ping", "10.0.0.255", "-b", "-I", "eth0", "-c", "5 >/dev/null"],
+            subprocess.Popen(["ping", "10.0.0.255", "-b", "-I", "enp3s0", "-c", "5 >/dev/null"],
                              stdout=subprocess.PIPE).communicate()[0]
             return "Done"
         else:
