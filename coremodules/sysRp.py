@@ -1,10 +1,7 @@
 from subprocess import Popen, PIPE
 import subprocess
-import sys
-sys.path.append("../")
-from rpcloud import RpCloud
-from arp import Arp
-from jsonrpc2 import JsonRpc
+from coremodules.rpCloud import RpCloud
+from coremodules.arp import Arp
 import unicodedata
 import json
 import re
@@ -14,7 +11,6 @@ class SysRp(object):
 
     def __init__(self):
         self.rP = RpCloud()
-        self.rpc = JsonRpc()
         self.arp = Arp()
 
     def getHostname(self, token, ip):
@@ -22,7 +18,7 @@ class SysRp(object):
         checked = self.rP.checkLogin(token)
         if(checked):
             # Ejecutamos "rsh" para obtener el nombre cada raspberryPi a partir de su IP
-            host = subprocess.Popen(["rsh", ip, "hostname"], stdout=subprocess.PIPE).communicate()[0]
+            host = subprocess.Popen(["rsh", "root@" + ip, "hostname"], stdout=subprocess.PIPE).communicate()[0]
             hostname = host.decode("utf-8").replace("\n", "")
             # Para convertir de unicode a string
             return unicodedata.normalize('NFKD', hostname).encode('ascii', 'ignore').decode("utf-8")
@@ -38,7 +34,7 @@ class SysRp(object):
 
         if(checked):
             # Leemos el contenido de start.json
-            jsonToPython = json.loads(open('../Static/start.json').read())
+            jsonToPython = json.loads(open('Static/start.json').read())
 
             # Vamos hacer la traduccion de hostname -- ip.
             # Recorremos el array de raspberry
@@ -49,9 +45,9 @@ class SysRp(object):
                     dnsIp = pi.get("ip")
 
             # Cambia el /etc/hostname
-            subprocess.Popen(["rsh", dnsIp, "echo", hostnameNew, " > /etc/hostname"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", "root@" + dnsIp, "echo", hostnameNew, " > /etc/hostname"], stdout=subprocess.PIPE).communicate()[0]
             # Sustituye la linea que empieza por ^127.0.1.1 nombreViejo por 127.0.1.1 nombreNuevo
-            subprocess.Popen(["rsh", dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "", "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
+            subprocess.Popen(["rsh", "root@" + dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "", "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
 
             return "Done"
         else:
@@ -60,9 +56,8 @@ class SysRp(object):
 
 
 
-    def generateJson(self, token, tableArp):
+    def generateJson(self, token):
 
-        self.rpc['getHostname'] = SysRp().getHostname
 
         checked = self.rP.checkLogin(token)
         if (checked):
@@ -70,37 +65,38 @@ class SysRp(object):
             listJson = []
             # [1::] se elimina la cabecera
 
-            for i in tableArp.get('result')[1::]:
+            for i in self.arp.getTable(token)[1::]:
                 # Los datos capturados de la tabla ARP son interpretados tipo "Bytes",
                 # Para interpretarlos tipo "String" usamos el decode(utf-8)
-                i = i.decode("utf-8").split()
+                i = i.split()
                 # Si empieza por una ip
 
                 if (re.match('^10(\.0){2}', i[0]) and re.match('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', i[2])):
-                    hostname = self.rpc(
-                        {"jsonrpc": "2.0", "method": "getHostname", "params": {"ip": i[0], "token": token},
-                         "id": "getHostname"})
-                    listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname.get('result')})
+
+                    hostname = self.getHostname(token,i[0])
+                    listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname})
 
             # Incluir raspberryPi en el diccionario
             concatJson = {'raspberryPi': ''}
             concatJson['raspberryPi'] = listJson
 
             # Parsea a JSON
-            return json.dumps(concatJson)
+            return concatJson
 
         else:
             return "Invalid Token"
 
 
-    def storageJson(self, token, json):
+    def storageJson(self, token, inputJson):
 
+        jsonParse = json.dumps(inputJson)
         checked = self.rP.checkLogin(token)
+
         if(checked):
 
             # Con la opcion 'w' editamos el fichero. Si no existe, lo crea
-            archi = open('../Static/start.json', 'w')
-            archi.write(json.get("result"))
+            archi = open('Static/start.json', 'w')
+            archi.write(jsonParse)
             archi.close()
 
             return "Done"
@@ -110,11 +106,10 @@ class SysRp(object):
 
     def reboot(self, token, hostname):
 
-
         checked = self.rP.checkLogin(token)
         if(checked):
             # Leemos el contenido de start.json
-            jsonToPython = json.loads(open('../Static/start.json').read())
+            jsonToPython = json.loads(open('Static/start.json').read())
 
             # Vamos hacer la traduccion de hostname -- ip.
             # Recorremos el array de raspberry
@@ -123,7 +118,7 @@ class SysRp(object):
                 if (pi.get("hostname") == hostname):
                     dnsIp2 = pi.get("ip")
 
-            subprocess.Popen(["rsh", dnsIp2, "reboot"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", "root@" + dnsIp2, "reboot"], stdout=subprocess.PIPE).communicate()[0]
 
             return "Done"
         else:
@@ -135,8 +130,8 @@ class SysRp(object):
 ################TEST#####################
 ########################################
 ## ENTRADA ##
-rpc = JsonRpc()
-rpc['getHostname'] = SysRp().getHostname
+#rpc = JsonRpc()
+#rpc['getHostname'] = SysRp().getHostname
 #print(rpc({"jsonrpc": "2.0", "method": "getHostname", "params": {"ip": "10.0.0.11", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "getHostname"}))
 ## SALIDA ##
 #{'jsonrpc': '2.0', 'result': 'rpi001', 'id': 'getHostname'}
@@ -144,10 +139,10 @@ rpc['getHostname'] = SysRp().getHostname
 
 ########################################
 ## ENTRADA ##
-rpc['getArpTable'] = Arp().getTable
-rpc['generateJson'] = SysRp().generateJson
-tableARP = rpc({"jsonrpc": "2.0", "method": "getArpTable", "params": {"token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "getArpTable"})
-GeneratedJson = rpc({"jsonrpc": "2.0", "method": "generateJson", "params": {"tableArp": tableARP, "token":"8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "generateJson"})
+#rpc['getArpTable'] = Arp().getTable
+#rpc['generateJson'] = SysRp().generateJson
+#tableARP = rpc({"jsonrpc": "2.0", "method": "getArpTable", "params": {"token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "getArpTable"})
+#GeneratedJson = rpc({"jsonrpc": "2.0", "method": "generateJson", "params": {"token":"8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "generateJson"})
 #print(GeneratedJson)
 ## SALIDA ##
 #{'result': '{"raspberryPi": [{"hostname": "rpi003", "ip": "10.0.0.14", "mac": "b8:27:eb:0c:48:42"}, {"hostname": "rpi002", "ip": "10.0.0.13", "mac": "b8:27:eb:53:3e:99"}, {"hostname": "rpi001", "ip": "10.0.0.11", "mac": "b8:27:eb:db:dd:97"}]}', 'jsonrpc': '2.0', 'id': 'generateJson'}
@@ -155,7 +150,7 @@ GeneratedJson = rpc({"jsonrpc": "2.0", "method": "generateJson", "params": {"tab
 
 ########################################
 ## ENTRADA ##
-rpc['storageJson'] = SysRp().storageJson
+#rpc['storageJson'] = SysRp().storageJson
 #print(rpc({"jsonrpc": "2.0", "method": "storageJson", "params": {"json": GeneratedJson, "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "storageJson"}))
 ## SALIDA ##
 #{'id': 'storageJson', 'result': 'Done', 'jsonrpc': '2.0'}
@@ -163,7 +158,7 @@ rpc['storageJson'] = SysRp().storageJson
 
 ########################################
 ## ENTRADA ##
-rpc['setHostname'] = SysRp().setHostname
+#rpc['setHostname'] = SysRp().setHostname
 #print(rpc({"jsonrpc": "2.0", "method": "setHostname", "params": {"hostnameOld": "rpi111", "hostnameNew": "rpi001", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "setHostname"}))
 ## SALIDA ##
 #{'id': 'setHostname', 'result': 'Done', 'jsonrpc': '2.0'}
@@ -171,7 +166,7 @@ rpc['setHostname'] = SysRp().setHostname
 
 ########################################
 ## ENTRADA ##
-rpc['reboot'] = SysRp().reboot
+#rpc['reboot'] = SysRp().reboot
 #print(rpc({"jsonrpc": "2.0", "method": "reboot", "params": {"hostname": "rpi111", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "reboot"}))
 ## SALIDA ##
 #{'id': 'reboot', 'result': 'Done', 'jsonrpc': '2.0'}

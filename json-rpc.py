@@ -8,13 +8,22 @@ from coremodules.sysRp import SysRp
 
 @Request.application
 def application(request):
+    arpObject = Arp()
+    rpCloudObject = RpCloud()
+    sysRpObject = SysRp()
     # Dispatcher is dictionary {<method_name>: callable}
-    dispatcher['scanARP'] = Arp().scan
-    dispatcher['login'] = RpCloud().login
-    dispatcher['checkPassword'] = RpCloud().checkPassword
-    dispatcher['checkLogin'] = RpCloud().checkLogin
-    dispatcher['logout'] = RpCloud().logout
-    dispatcher['getHostname'] = SysRp().getHostname
+    dispatcher['scanARP'] = arpObject.scan
+    dispatcher['getArpTable'] = arpObject.getTable
+    dispatcher['login'] = rpCloudObject.login
+    dispatcher['checkPassword'] = rpCloudObject.checkPassword
+    dispatcher['checkLogin'] = rpCloudObject.checkLogin
+    dispatcher['logout'] = rpCloudObject.logout
+    dispatcher['getHostname'] = sysRpObject.getHostname
+    dispatcher['reboot'] = sysRpObject.reboot
+    dispatcher['setHostname'] = sysRpObject.setHostname
+    dispatcher['generateJson'] = sysRpObject.generateJson
+    dispatcher['storageJson'] = sysRpObject.storageJson
+
 
     response = JSONRPCResponseManager.handle(
         request.data, dispatcher)

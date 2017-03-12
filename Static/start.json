@@ -1,1 +1,1 @@
-{"raspberryPi": [{"ip": "10.0.0.10", "mac": "b8:27:eb:0c:48:42", "hostname": "rpi003"}, {"ip": "10.0.0.11", "mac": "b8:27:eb:db:dd:97", "hostname": "rpi001"}, {"ip": "10.0.0.12", "mac": "b8:27:eb:53:3e:99", "hostname": "rpi002"}]}
+{"raspberryPi": [{"ip": "10.0.0.12", "mac": "b8:27:eb:53:3e:99", "hostname": "rpi002"}, {"ip": "10.0.0.11", "mac": "b8:27:eb:db:dd:97", "hostname": "rpi001"}, {"ip": "10.0.0.10", "mac": "b8:27:eb:0c:48:42", "hostname": "rpi003"}]}
