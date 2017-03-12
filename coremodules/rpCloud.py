@@ -1,8 +1,5 @@
-import sys
-sys.path.append("../")
 from Mongo.helper import RaspberryDB
 import hashlib, uuid
-from jsonrpc2 import JsonRpc
 
 
 class RpCloud(object):
@@ -62,8 +59,8 @@ class RpCloud(object):
 ########################################
 
 ## ENTRADA ##
-rpc = JsonRpc()
-rpc['login'] = RpCloud().login
+#rpc = JsonRpc()
+#rpc['login'] = RpCloud().login
 #resultLogin = rpc({"jsonrpc": "2.0", "method": "login", "params": {"user": "leo", "password": "abc123."}, "id": "login"})
 #print(resultLogin)
 ## SALIDA ##
@@ -71,7 +68,7 @@ rpc['login'] = RpCloud().login
 
 ########################################
 ## ENTRADA ##
-rpc['checkPassword'] = RpCloud().checkPassword
+#rpc['checkPassword'] = RpCloud().checkPassword
 #print(rpc({"jsonrpc": "2.0", "method": "checkPassword", "params": {"token": "c07f4789cd9b3338bf35ea21ff353f3bd181c528d8e980dd27fc0ee10143c7307b15bc796bf20ee0a9743a7d61ae2e0dc093ad034afc6a16b62f207060fe925b:d45774ad1dae49d48bcb795cb0d9372d",
 # "user_password": "abc123."}, "id": "checkPassword"}))
 ## SALIDA ##
@@ -80,15 +77,15 @@ rpc['checkPassword'] = RpCloud().checkPassword
 
 ########################################
 ## ENTRADA ##
-rpc['checkLogin'] = RpCloud().checkLogin
-#print(rpc({"jsonrpc": "2.0", "method": "checkLogin", "params": {"token": "041c65e06039771eee97c0f8b41d678a7837dd48c0d189a146cd4472d5af749969d6f59af8a706170dff1c6473217c6ae9c172b6d33a057866b8746ffed00f96:0059d447166048ad845bf05c70732284"}, "id": "checkLogin"}))
+#rpc['checkLogin'] = RpCloud().checkLogin
+#print(rpc({"jsonrpc": "2.0", "method": "checkLogin", "params": {"token": "c07f4789cd9b3338bf35ea21ff353f3bd181c528d8e980dd27fc0ee10143c7307b15bc796bf20ee0a9743a7d61ae2e0dc093ad034afc6a16b62f207060fe925b:d45774ad1dae49d48bcb795cb0d9372d"}, "id": "checkLogin"}))
 ## SALIDA ##
 #{'jsonrpc': '2.0', 'id': 'checkLogin', 'result': True}
 #{'jsonrpc': '2.0', 'id': 'checkLogin', 'result': False}
 
 ########################################
 ## ENTRADA ##
-rpc['logout'] = RpCloud().logout
+#rpc['logout'] = RpCloud().logout
 #print(rpc({"jsonrpc": "2.0", "method": "logout", "params": {"token":"041c65e06039771eee97c0f8b41d678a7837dd48c0d189a146cd4472d5af749969d6f59af8a706170dff1c6473217c6ae9c172b6d33a057866b8746ffed00f96:0059d447166048ad845bf05c70732284"}, "id": "logout"}))
 ## SALIDA ##
 # {'jsonrpc': '2.0', 'id': 'logout', 'result': 'Ok'}
