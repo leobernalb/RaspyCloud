@@ -33,12 +33,12 @@ class SysRp(object):
         checked = self.rP.checkLogin(token)
 
         if(checked):
-            # Leemos el contenido de start.json
-            jsonToPython = json.loads(open('Static/start.json').read())
+            # Consultamos el JSON actual
+            generatedJson = self.generateJson(token)
 
             # Vamos hacer la traduccion de hostname -- ip.
             # Recorremos el array de raspberry
-            for pi in jsonToPython.get("raspberryPi"):
+            for pi in generatedJson.get("raspberryPi"):
 
                 if(pi.get("hostname") == hostnameOld):
 
@@ -87,17 +87,17 @@ class SysRp(object):
             return "Invalid Token"
 
 
-    def storageJson(self, token, inputJson):
+    def storageJson(self, token):
 
-        jsonParse = json.dumps(inputJson)
+        # Consultamos el JSON actual
+        generatedJson = self.generateJson(token)
         checked = self.rP.checkLogin(token)
 
         if(checked):
 
             # Con la opcion 'w' editamos el fichero. Si no existe, lo crea
-            archi = open('Static/start.json', 'w')
-            archi.write(jsonParse)
-            archi.close()
+            with open('Static/start.json', 'w') as outfile:
+                json.dump(generatedJson, outfile)
 
             return "Done"
         else:
@@ -108,12 +108,12 @@ class SysRp(object):
 
         checked = self.rP.checkLogin(token)
         if(checked):
-            # Leemos el contenido de start.json
-            jsonToPython = json.loads(open('Static/start.json').read())
+            # Consultamos el JSON actual
+            generatedJson = self.generateJson(token)
 
             # Vamos hacer la traduccion de hostname -- ip.
             # Recorremos el array de raspberry
-            for pi in jsonToPython.get("raspberryPi"):
+            for pi in generatedJson.get("raspberryPi"):
 
                 if (pi.get("hostname") == hostname):
                     dnsIp2 = pi.get("ip")
