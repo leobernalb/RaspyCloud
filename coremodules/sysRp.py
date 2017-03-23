@@ -13,12 +13,109 @@ class SysRp(object):
         self.rP = RpCloud()
         self.arp = Arp()
 
+    def createPartition(self, token, ip):
+
+        checked = self.rP.checkLogin(token)
+        if (checked):
+            ## Dump de la tabla de particiones
+            partition = subprocess.Popen(["rsh", ip, "sfdisk", "--dump", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+            with open('/tmp/tablePartition.part', 'w') as outfile:
+                outfile.write(partition.decode("utf-8"))
+
+            sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
+            #print(sectorStartTwo)
+
+            sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
+            #print(sectorTamSizeTwo)
+
+            # Para obtener el START3 de la particion nueva = START PARTICION2 + SIZE2
+            startNewPartition = int(sectorStartTwo) + int(sectorTamSizeTwo)
+            #print(startNewPartition)
+
+            # Tamaño maximo de particion (en sectores) secSizek0 - START particion nueva (calculado antes)
+            sectorsSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+            sectorsSizek0 = sectorsSizek0.decode("utf-8").replace("\n","")
+            #print(sectorsSizek0)
+
+            # Para Obtener el size de la particion nueva = secSizek0 - START particion nueva (calculado antes)
+            sectorsSizeNewPartition = int(sectorsSizek0) - int(startNewPartition)
+            #print(sectorsSizeNewPartition)
+
+            mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            mmcblk0p3 = mmcblk0p3.decode("utf-8").replace("\n", "")
+            #print(mmcblk0p3)
+            newLine = ("/dev/mmcblk0p3 : start="+ str(startNewPartition) + ", size="+ str(sectorsSizeNewPartition) + ", Id=83")
+            subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part "], stdout=subprocess.PIPE).communicate()[0]
+
+
+            ## Tamaño de sector (en bytes) el famoso 512!!!!!!!!!!!!!!!!!!!!!!!
+            #tamSectors = subprocess.Popen(["rsh", ip, "blockdev", "--getss", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+            ## Tamaño maximo de disco (en sectores) eso hay que multiplicarlo por 512
+            #secSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+            # blockdev --getsize64 /dev/mmcblk0 ### El tamaño de la particion ya multiplicado (en bytes!!!!!!!!!!!!!)
+
+            return "Done"
+
+        else:
+            return "Invalid Token"
+
+
+
+    def formatFileSystemAndMount(self, token, ip):
+
+        checked = self.rP.checkLogin(token)
+        if (checked):
+
+            subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
+
+            return "Done"
+
+        else:
+            return "Invalid Token"
+
+
+    def mountImg(self, token, img):
+
+        checked = self.rP.checkLogin(token)
+        if (checked):
+
+            # Tamaño de bloque del sistema. Tambien lo podriamos hacer con el comando blockdev pero tenemos que
+            # saber tambien el nombre del dispositivo usado. (sda, hda, ...) Lo sacamos directamente de fdisk y la img
+            fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
+            tamBlock = subprocess.check_output(('awk', '/^Uni/{print $6}'), stdin=fdisk.stdout).decode("utf-8")
+            tamBlock = tamBlock.replace("\n","")
+ #           print(tamBlock)
+
+            # Debemos ejecutar de nuevo fdisk porque el flujo de datos no es persistente
+            # Obtener el inicio de sector de la particion dos de la imagen deseada
+            fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
+            startSectorsPartitionTwo = subprocess.check_output(('awk', '$1 ~ /img2/ { print $2}'), stdin=fdisk.stdout).decode("utf-8")
+            startSectorsPartitionTwo = startSectorsPartitionTwo.replace("\n", "")
+#            print(startSectorsPartitionTwo)
+
+            # Calculamos el numero de bytes desde donde se montara la imagen
+            subprocess.Popen(["mkdir", "-p", "/mnt/img/two"], stdout=subprocess.PIPE)
+            subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)), "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
+
+
+            return "Done"
+
+        else:
+            return "Invalid Token"
+
+
     def getHostname(self, token, ip):
 
         checked = self.rP.checkLogin(token)
         if(checked):
             # Ejecutamos "rsh" para obtener el nombre cada raspberryPi a partir de su IP
-            host = subprocess.Popen(["rsh", "root@" + ip, "hostname"], stdout=subprocess.PIPE).communicate()[0]
+            host = subprocess.Popen(["rsh", ip, "hostname"], stdout=subprocess.PIPE).communicate()[0]
             hostname = host.decode("utf-8").replace("\n", "")
             # Para convertir de unicode a string
             return unicodedata.normalize('NFKD', hostname).encode('ascii', 'ignore').decode("utf-8")
@@ -171,3 +268,4 @@ class SysRp(object):
 ## SALIDA ##
 #{'id': 'reboot', 'result': 'Done', 'jsonrpc': '2.0'}
 #{'jsonrpc': '2.0', 'id': 'reboot', 'result': 'Invalid Token'}
+
