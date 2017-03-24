@@ -18,15 +18,18 @@ class SysRp(object):
         checked = self.rP.checkLogin(token)
         if (checked):
             ## Dump de la tabla de particiones
-            partition = subprocess.Popen(["rsh", ip, "sfdisk", "--dump", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+            partition = subprocess.Popen(["rsh", ip, "sfdisk", "--dump", "/dev/mmcblk0"],
+                                         stdout=subprocess.PIPE).communicate()[0]
             with open('/tmp/tablePartition.part', 'w') as outfile:
                 outfile.write(partition.decode("utf-8"))
 
-            sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition.part"],
+                                              stdout=subprocess.PIPE).communicate()[0]
             sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
             #print(sectorStartTwo)
 
-            sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition.part"],
+                                                stdout=subprocess.PIPE).communicate()[0]
             sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
             #print(sectorTamSizeTwo)
 
@@ -35,7 +38,8 @@ class SysRp(object):
             #print(startNewPartition)
 
             # Tamaño maximo de particion (en sectores) secSizek0 - START particion nueva (calculado antes)
-            sectorsSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+            sectorsSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"],
+                                             stdout=subprocess.PIPE).communicate()[0]
             sectorsSizek0 = sectorsSizek0.decode("utf-8").replace("\n","")
             #print(sectorsSizek0)
 
@@ -43,13 +47,16 @@ class SysRp(object):
             sectorsSizeNewPartition = int(sectorsSizek0) - int(startNewPartition)
             #print(sectorsSizeNewPartition)
 
-            mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
+            mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition.part"],
+                                         stdout=subprocess.PIPE).communicate()[0]
             mmcblk0p3 = mmcblk0p3.decode("utf-8").replace("\n", "")
             #print(mmcblk0p3)
             newLine = ("/dev/mmcblk0p3 : start="+ str(startNewPartition) + ", size="+ str(sectorsSizeNewPartition) + ", Id=83")
-            subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition.part"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part "], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition.part"],
+                             stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE)
+            subprocess.Popen(["rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part "],
+                             stdout=subprocess.PIPE).communicate()[0]
 
 
             ## Tamaño de sector (en bytes) el famoso 512!!!!!!!!!!!!!!!!!!!!!!!
@@ -70,9 +77,9 @@ class SysRp(object):
         checked = self.rP.checkLogin(token)
         if (checked):
 
-            subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE)
+            subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE)
+            subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE)
 
             return "Done"
 
@@ -90,24 +97,62 @@ class SysRp(object):
             fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
             tamBlock = subprocess.check_output(('awk', '/^Uni/{print $6}'), stdin=fdisk.stdout).decode("utf-8")
             tamBlock = tamBlock.replace("\n","")
- #           print(tamBlock)
+            #print(tamBlock)
 
             # Debemos ejecutar de nuevo fdisk porque el flujo de datos no es persistente
             # Obtener el inicio de sector de la particion dos de la imagen deseada
             fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
-            startSectorsPartitionTwo = subprocess.check_output(('awk', '$1 ~ /img2/ { print $2}'), stdin=fdisk.stdout).decode("utf-8")
+            startSectorsPartitionTwo = subprocess.check_output(('awk', '$1 ~ /img2/ { print $2}'),
+                                                               stdin=fdisk.stdout).decode("utf-8")
             startSectorsPartitionTwo = startSectorsPartitionTwo.replace("\n", "")
-#            print(startSectorsPartitionTwo)
+            #print(startSectorsPartitionTwo)
 
             # Calculamos el numero de bytes desde donde se montara la imagen
             subprocess.Popen(["mkdir", "-p", "/mnt/img/two"], stdout=subprocess.PIPE)
-            subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)), "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
+            subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)),
+                              "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
 
 
             return "Done"
 
         else:
             return "Invalid Token"
+
+
+
+    def synchronization(self, token, ip):
+
+        checked = self.rP.checkLogin(token)
+        if (checked):
+
+            subprocess.Popen(["rsync", "-vaz", "/mnt/img/two/", ip +":/mnt/img/."], stdout=subprocess.PIPE)
+
+            return "In progress"
+
+        else:
+            return "Invalid Token"
+
+
+
+    def changePartition(self, token, ip, rescuteMode=True):
+
+        checked = self.rP.checkLogin(token)
+        if (checked):
+
+            if (rescuteMode):
+                part = "\/dev\/mmcblk0p2"
+                print(subprocess.Popen(["rsh", ip, "sed 's|\/dev\/mmcblk0p3|" + part + "|g' /boot/cmdline.txt"],
+                                       stdout=subprocess.PIPE).communicate()[0])
+            else:
+                part = "\/dev\/mmcblk0p3"
+                print(subprocess.Popen(["rsh", ip, "sed 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
+                                       stdout=subprocess.PIPE).communicate()[0])
+
+            return "Done"
+
+        else:
+            return "Invalid Token"
+
 
 
     def getHostname(self, token, ip):
@@ -142,9 +187,11 @@ class SysRp(object):
                     dnsIp = pi.get("ip")
 
             # Cambia el /etc/hostname
-            subprocess.Popen(["rsh", "root@" + dnsIp, "echo", hostnameNew, " > /etc/hostname"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", "root@" + dnsIp, "echo", hostnameNew, " > /etc/hostname"],
+                             stdout=subprocess.PIPE).communicate()[0]
             # Sustituye la linea que empieza por ^127.0.1.1 nombreViejo por 127.0.1.1 nombreNuevo
-            subprocess.Popen(["rsh", "root@" + dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "", "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
+            subprocess.Popen(["rsh", "root@" + dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "",
+                              "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
 
             return "Done"
         else:
