@@ -5,6 +5,7 @@ from coremodules.arp import Arp
 import unicodedata
 import json
 import re
+import time
 
 class SysRp(object):
 
@@ -24,13 +25,11 @@ class SysRp(object):
             with open('/tmp/tablePartition.part', 'w') as outfile:
                 outfile.write(partition.decode("utf-8"))
 
-            subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0]
             sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition.part"],
                                               stdout=subprocess.PIPE).communicate()[0]
             sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
             #print(sectorStartTwo)
 
-            subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0]
             sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition.part"],
                                                 stdout=subprocess.PIPE).communicate()[0]
             sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
@@ -57,9 +56,10 @@ class SysRp(object):
             newLine = ("/dev/mmcblk0p3 : start="+ str(startNewPartition) + ", size="+ str(sectorsSizeNewPartition) + ", Id=83")
             subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition.part"],
                              stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE)
-            subprocess.Popen(["rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part"],
-                             stdout=subprocess.PIPE).communicate()[0]
+            sendPartition = subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE)
+            time.sleep(3)
+            subprocess.Popen(("rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part"), stdin=sendPartition.stdout).communicate()[0]
+
 
 
             ## Tamaño de sector (en bytes) el famoso 512!!!!!!!!!!!!!!!!!!!!!!!
@@ -79,16 +79,12 @@ class SysRp(object):
 
         checked = self.rP.checkLogin(token)
         if (checked):
-            print("####################################### MACHINE STATUS #############################################")
-            machineStatus = self.checkMachine(ip)
-            if(machineStatus == 'up'):
-                print("####################################### FORMAT PARTITION #############################################")
-                subprocess.Popen(["rsh", ip, "umount", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
-                subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
-                subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
-                subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
-            else:
-                return "Machine Down"
+
+            print("####################################### FORMAT PARTITION #############################################")
+            subprocess.Popen(["rsh", ip, "umount", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
             return "Done"
 
         else:
@@ -285,7 +281,10 @@ class SysRp(object):
                 if (pi.get("hostname") == hostname):
                     dnsIp2 = pi.get("ip")
 
-            subprocess.Popen(["rsh", "root@" + dnsIp2, "reboot"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0 ; exit'], stdout=subprocess.PIPE).communicate()[0]
+
+            print("####################################### MACHINE STATUS #############################################")
+            print(self.checkMachine(dnsIp2))
 
             return "Done"
         else:
