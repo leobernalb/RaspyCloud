@@ -22,15 +22,15 @@ class SysRp(object):
             ## Dump de la tabla de particiones
             partition = subprocess.Popen(["rsh", ip, "sfdisk", "--dump", "/dev/mmcblk0"],
                                          stdout=subprocess.PIPE).communicate()[0]
-            with open('/tmp/tablePartition.part', 'w') as outfile:
+            with open('/tmp/tablePartition'+ip+'.part', 'w') as outfile:
                 outfile.write(partition.decode("utf-8"))
 
-            sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition.part"],
+            sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition"+ip+".part"],
                                               stdout=subprocess.PIPE).communicate()[0]
             sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
             #print(sectorStartTwo)
 
-            sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition.part"],
+            sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition"+ip+".part"],
                                                 stdout=subprocess.PIPE).communicate()[0]
             sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
             #print(sectorTamSizeTwo)
@@ -49,16 +49,16 @@ class SysRp(object):
             sectorsSizeNewPartition = int(sectorsSizek0) - int(startNewPartition)
             #print(sectorsSizeNewPartition)
 
-            mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition.part"],
+            mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition"+ip+".part"],
                                          stdout=subprocess.PIPE).communicate()[0]
             mmcblk0p3 = mmcblk0p3.decode("utf-8").replace("\n", "")
             #print(mmcblk0p3)
             newLine = ("/dev/mmcblk0p3 : start="+ str(startNewPartition) + ", size="+ str(sectorsSizeNewPartition) + ", Id=83")
-            subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition.part"],
+            subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition"+ip+".part"],
                              stdout=subprocess.PIPE).communicate()[0]
-            sendPartition = subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE)
+            sendPartition = subprocess.Popen(["scp", "/tmp/tablePartition"+ip+".part", ip + ":/tmp/."], stdout=subprocess.PIPE)
             time.sleep(3)
-            subprocess.Popen(("rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part"), stdin=sendPartition.stdout).communicate()[0]
+            subprocess.Popen(("rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition"+ip+".part"), stdin=sendPartition.stdout).communicate()[0]
 
 
 
@@ -124,7 +124,7 @@ class SysRp(object):
 
             # Empaquetar y comprimit
             print("####################################### COMPRESS IMG #############################################")
-            subprocess.Popen(['tar -cvzf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
+            subprocess.Popen(['tar -czf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
 
             return "Done"
         else:
@@ -142,7 +142,7 @@ class SysRp(object):
             print("####################################### SEND IMG #############################################")
             subprocess.Popen(["scp", "/tmp/imagen.tar.gz", ip + ":/mnt/img/."], stdout=subprocess.PIPE).communicate()[0]
             print("####################################### DECOMPRESS #############################################")
-            subprocess.Popen(["rsh", ip, "tar", "-xvf", "/mnt/img/imagen.tar.gz", "-C", "/mnt/img/."], stdin=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["rsh", ip, "tar", "-xf", "/mnt/img/imagen.tar.gz", "-C", "/mnt/img/."], stdin=subprocess.PIPE).communicate()[0]
 
         else:
             return "Invalid Token"
@@ -283,7 +283,6 @@ class SysRp(object):
 
             subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0 ; exit'], stdout=subprocess.PIPE).communicate()[0]
 
-            print("####################################### MACHINE STATUS #############################################")
             print(self.checkMachine(dnsIp2))
 
             return "Done"
@@ -293,6 +292,7 @@ class SysRp(object):
 
     def checkMachine(self, ip):
 
+        print("####################################### MACHINE STATUS #############################################")
         # Hacemos 30 ping y si recibimos correctamente 5 o mas consideramos que la rpi esta "UP"
         ping = subprocess.Popen(["ping", "-c", "30", ip], stdout=subprocess.PIPE)
         pingNum = subprocess.check_output(('awk', '/received/{print $4}'), stdin=ping.stdout).decode("utf-8").replace("\n","")
