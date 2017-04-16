@@ -15,6 +15,7 @@ class SysRp(object):
 
     def createPartition(self, token, ip):
 
+        print("####################################### CREATE PARTITION #############################################")
         checked = self.rP.checkLogin(token)
         if (checked):
             ## Dump de la tabla de particiones
@@ -23,11 +24,13 @@ class SysRp(object):
             with open('/tmp/tablePartition.part', 'w') as outfile:
                 outfile.write(partition.decode("utf-8"))
 
+            subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0]
             sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition.part"],
                                               stdout=subprocess.PIPE).communicate()[0]
             sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
             #print(sectorStartTwo)
 
+            subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0]
             sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition.part"],
                                                 stdout=subprocess.PIPE).communicate()[0]
             sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
@@ -55,7 +58,7 @@ class SysRp(object):
             subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition.part"],
                              stdout=subprocess.PIPE).communicate()[0]
             subprocess.Popen(["scp", "/tmp/tablePartition.part", ip + ":/tmp/."], stdout=subprocess.PIPE)
-            subprocess.Popen(["rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part "],
+            subprocess.Popen(["rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition.part"],
                              stdout=subprocess.PIPE).communicate()[0]
 
 
@@ -76,21 +79,27 @@ class SysRp(object):
 
         checked = self.rP.checkLogin(token)
         if (checked):
-
-            subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE)
-            subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE)
-            subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE)
-
+            print("####################################### MACHINE STATUS #############################################")
+            machineStatus = self.checkMachine(ip)
+            if(machineStatus == 'up'):
+                print("####################################### FORMAT PARTITION #############################################")
+                subprocess.Popen(["rsh", ip, "umount", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+                subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
+                subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+                subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
+            else:
+                return "Machine Down"
             return "Done"
 
         else:
             return "Invalid Token"
 
 
-    def mountImg(self, token, img):
-
+    def mountImgCompress(self, token, img):
+        print("####################################### MOUNT IMG SERVER #############################################")
         checked = self.rP.checkLogin(token)
         if (checked):
+            subprocess.Popen(["umount", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
 
             # Tamaño de bloque del sistema. Tambien lo podriamos hacer con el comando blockdev pero tenemos que
             # saber tambien el nombre del dispositivo usado. (sda, hda, ...) Lo sacamos directamente de fdisk y la img
@@ -108,45 +117,59 @@ class SysRp(object):
             #print(startSectorsPartitionTwo)
 
             # Calculamos el numero de bytes desde donde se montara la imagen
-            subprocess.Popen(["mkdir", "-p", "/mnt/img/two"], stdout=subprocess.PIPE)
-            subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)),
-                              "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
+            subprocess.Popen(["mkdir", "-p", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)), "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
+            subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0] ## Espera 3 segundos para asegurarnos que se monta la particion
 
+            # Copiar clave publica RSA
+            print("####################################### ADD RSA #############################################")
+            subprocess.Popen(["mkdir", "-p", "/mnt/img/two/root/.ssh"], stdout=subprocess.PIPE).communicate()[0]
+            subprocess.Popen(["cp", "/root/.ssh/id_rsa.pub", "/mnt/img/two/root/.ssh/authorized_keys"], stdout=subprocess.PIPE).communicate()[0]
+
+            # Empaquetar y comprimit
+            print("####################################### COMPRESS IMG #############################################")
+            subprocess.Popen(['tar -cvzf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
 
             return "Done"
-
         else:
             return "Invalid Token"
 
 
 
-    def synchronization(self, token, ip):
+    def sendAndDecompress(self, token, ip):
 
         checked = self.rP.checkLogin(token)
         if (checked):
 
-            subprocess.Popen(["rsync", "-vaz", "/mnt/img/two/", ip +":/mnt/img/."], stdout=subprocess.PIPE)
-
-            return "In progress"
+            # Envio de img comprimida y descompresion en la rpi
+            # Por defecto lee la imagen guardada en /mnt/img/ del servidor y la descomprime en el /mnt/img/ de la rpi
+            print("####################################### SEND IMG #############################################")
+            subprocess.Popen(["scp", "/tmp/imagen.tar.gz", ip + ":/mnt/img/."], stdout=subprocess.PIPE).communicate()[0]
+            print("####################################### DECOMPRESS #############################################")
+            subprocess.Popen(["rsh", ip, "tar", "-xvf", "/mnt/img/imagen.tar.gz", "-C", "/mnt/img/."], stdin=subprocess.PIPE).communicate()[0]
 
         else:
             return "Invalid Token"
+
 
 
 
     def changePartition(self, token, ip, rescuteMode=True):
 
+        print("####################################### CHANGE PARTITION #############################################")
         checked = self.rP.checkLogin(token)
         if (checked):
 
             if (rescuteMode):
+                # Cambia a Particion minima con Raspbian de 3 --+ 2
                 part = "\/dev\/mmcblk0p2"
-                print(subprocess.Popen(["rsh", ip, "sed 's|\/dev\/mmcblk0p3|" + part + "|g' /boot/cmdline.txt"],
-                                       stdout=subprocess.PIPE).communicate()[0])
+                subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p3|" + part + "|g' /boot/cmdline.txt"],
+                                       stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
             else:
+                # Cambia a Particion nueva de 2 --+ 3
                 part = "\/dev\/mmcblk0p3"
-                print(subprocess.Popen(["rsh", ip, "sed 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
-                                       stdout=subprocess.PIPE).communicate()[0])
+                subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
+                                       stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
 
             return "Done"
 
@@ -249,7 +272,7 @@ class SysRp(object):
 
 
     def reboot(self, token, hostname):
-
+        print("####################################### REBOOT #############################################")
         checked = self.rP.checkLogin(token)
         if(checked):
             # Consultamos el JSON actual
@@ -268,6 +291,18 @@ class SysRp(object):
         else:
             return "Invalid Token"
 
+
+    def checkMachine(self, ip):
+
+        # Hacemos 30 ping y si recibimos correctamente 5 o mas consideramos que la rpi esta "UP"
+        ping = subprocess.Popen(["ping", "-c", "30", ip], stdout=subprocess.PIPE)
+        pingNum = subprocess.check_output(('awk', '/received/{print $4}'), stdin=ping.stdout).decode("utf-8").replace("\n","")
+
+        print(pingNum)
+        if(int(pingNum) >= 5):
+            return "up"
+        else:
+            return "down"
 
 
 #########################################
