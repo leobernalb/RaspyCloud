@@ -8,24 +8,22 @@ class Arp(object):
 
     def __init__(self):
         self.rP = RpCloud()
+        # Lo ejecutamos siempre, cada vez que instanciamos el objeto Arp
+        self.update()
 
-    def scan(self, token):
+    def update(self):
 
-        checked = self.rP.checkLogin(token)
-        if(checked):
-            print({'jsonrpc': '2.0', 'result': 'In process', 'id': 'broadcast'})
-            subprocess.Popen(["ping", "10.0.0.255", "-b", "-I", "enp3s0", "-c", "5 >/dev/null"],
-                             stdout=subprocess.PIPE).communicate()[0]
-            return "Done"
-        else:
-            return "Invalid Token"
-
+        # Actualiza la tabla ARP haciendo 1 ping a nuestro rango de IP
+        for i in range(10, 100):
+            subprocess.Popen(["ping", "-c", "1", "10.0.0." + str(i), "-I", "enp3s0"], stdout=subprocess.PIPE)
 
 
     def getTable(self, token):
 
         checked = self.rP.checkLogin(token)
         if(checked):
+            # Actualiza la tabla de ARP
+
             # Consulta la tabla ARP
             output = subprocess.Popen(["arp"], stdout=subprocess.PIPE).communicate()[0]
 

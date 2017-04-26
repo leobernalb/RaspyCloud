@@ -121,11 +121,13 @@ class SysRp(object):
             print("####################################### ADD RSA #############################################")
             subprocess.Popen(["mkdir", "-p", "/mnt/img/two/root/.ssh"], stdout=subprocess.PIPE).communicate()[0]
             subprocess.Popen(["cp", "/root/.ssh/id_rsa.pub", "/mnt/img/two/root/.ssh/authorized_keys"], stdout=subprocess.PIPE).communicate()[0]
+            # Eliminamos el /var/lib/dhcp/* para limpiar el registro de ip por DHCP
+            subprocess.Popen(["rm", "-r", "/mnt/img/two/var/lib/dhcp/"], stdout=subprocess.PIPE).communicate()[0]
 
             # Empaquetar y comprimit
             print("####################################### COMPRESS IMG #############################################")
             subprocess.Popen(['tar -czf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
-
+            print("####################################### FINISHED COMPRESS IMG #############################################")
             return "Done"
         else:
             return "Invalid Token"
