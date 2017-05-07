@@ -20,19 +20,14 @@ class Arp(object):
 
     def getTable(self, token):
 
-        checked = self.rP.checkLogin(token)
-        if(checked):
-            # Actualiza la tabla de ARP
+        # Actualiza la tabla de ARP
 
-            # Consulta la tabla ARP
-            output = subprocess.Popen(["arp"], stdout=subprocess.PIPE).communicate()[0]
+        # Consulta la tabla ARP
+        output = subprocess.Popen(["arp"], stdout=subprocess.PIPE).communicate()[0]
 
-            # splitlines transforma a lista haciendo split por \n
-            return output.decode("utf-8").splitlines()
+        # splitlines transforma a lista haciendo split por \n
+        return output.decode("utf-8").splitlines()
 
-
-        else:
-            return "Invalid Token"
 #########################################
 ################TEST#####################
 ########################################

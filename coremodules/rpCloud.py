@@ -11,7 +11,7 @@ class RpCloud(object):
         self.salt = uuid.uuid4().hex
 
 
-    def login(self, user="admin", password="admin"):
+    def register(self, user="admin", password="admin"):
         conn = RaspberryDB()
         # Generaramos el Hash de usuario en sha512 con el siguiente formato salt + password : salt
         self.user = user
@@ -29,16 +29,22 @@ class RpCloud(object):
         # Devuelve TRUE or FALSE en jsonRPC
         return password == hashlib.sha512(salt.encode() + user_password.encode()).hexdigest()
 
-
-    def checkLogin(self, token):
+    def checkLogin(self, username, password):
         conn = RaspberryDB()
-        searched = conn.searchLogin(collection="login",  hash=token)
-        # Si la busqueda es [] devuelve False
+        searched = conn.searchLogin(collection="login",  user=username)
+
         if len(searched) == 0:
             return False
         else:
-            # Si la busqueda tiene 1 elemento, devuelve True
-            return True
+            # Si la busqueda tiene 1 o mas elementos, buscamos coincidencia entre los hashes de ese usuario
+            for i in searched:
+                checkpass = self.checkPassword(i.get("hash"), password)
+                if checkpass:
+                    res = True
+                    break
+                else:
+                    res = False
+        return res
 
 
     def logout(self, token):

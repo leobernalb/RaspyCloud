@@ -17,137 +17,119 @@ class SysRp(object):
     def createPartition(self, token, ip):
 
         print("####################################### CREATE PARTITION #############################################")
-        checked = self.rP.checkLogin(token)
-        if (checked):
-            ## Dump de la tabla de particiones
-            partition = subprocess.Popen(["rsh", ip, "sfdisk", "--dump", "/dev/mmcblk0"],
+
+        ## Dump de la tabla de particiones
+        partition = subprocess.Popen(["rsh", ip, "sfdisk", "--dump", "/dev/mmcblk0"],
+                                     stdout=subprocess.PIPE).communicate()[0]
+        with open('/tmp/tablePartition'+ip+'.part', 'w') as outfile:
+            outfile.write(partition.decode("utf-8"))
+
+        sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition"+ip+".part"],
+                                          stdout=subprocess.PIPE).communicate()[0]
+        sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
+        #print(sectorStartTwo)
+
+        sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition"+ip+".part"],
+                                            stdout=subprocess.PIPE).communicate()[0]
+        sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
+        #print(sectorTamSizeTwo)
+
+        # Para obtener el START3 de la particion nueva = START PARTICION2 + SIZE2
+        startNewPartition = int(sectorStartTwo) + int(sectorTamSizeTwo)
+        #print(startNewPartition)
+
+        # Tamaño maximo de particion (en sectores) secSizek0 - START particion nueva (calculado antes)
+        sectorsSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"],
                                          stdout=subprocess.PIPE).communicate()[0]
-            with open('/tmp/tablePartition'+ip+'.part', 'w') as outfile:
-                outfile.write(partition.decode("utf-8"))
+        sectorsSizek0 = sectorsSizek0.decode("utf-8").replace("\n","")
+        #print(sectorsSizek0)
 
-            sectorStartTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $4}", "/tmp/tablePartition"+ip+".part"],
-                                              stdout=subprocess.PIPE).communicate()[0]
-            sectorStartTwo = sectorStartTwo.decode("utf-8").replace(",\n","")
-            #print(sectorStartTwo)
+        # Para Obtener el size de la particion nueva = secSizek0 - START particion nueva (calculado antes)
+        sectorsSizeNewPartition = int(sectorsSizek0) - int(startNewPartition)
+        #print(sectorsSizeNewPartition)
 
-            sectorTamSizeTwo = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p2/{print $6}", "/tmp/tablePartition"+ip+".part"],
-                                                stdout=subprocess.PIPE).communicate()[0]
-            sectorTamSizeTwo = sectorTamSizeTwo.decode("utf-8").replace(",\n", "")
-            #print(sectorTamSizeTwo)
-
-            # Para obtener el START3 de la particion nueva = START PARTICION2 + SIZE2
-            startNewPartition = int(sectorStartTwo) + int(sectorTamSizeTwo)
-            #print(startNewPartition)
-
-            # Tamaño maximo de particion (en sectores) secSizek0 - START particion nueva (calculado antes)
-            sectorsSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"],
-                                             stdout=subprocess.PIPE).communicate()[0]
-            sectorsSizek0 = sectorsSizek0.decode("utf-8").replace("\n","")
-            #print(sectorsSizek0)
-
-            # Para Obtener el size de la particion nueva = secSizek0 - START particion nueva (calculado antes)
-            sectorsSizeNewPartition = int(sectorsSizek0) - int(startNewPartition)
-            #print(sectorsSizeNewPartition)
-
-            mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition"+ip+".part"],
-                                         stdout=subprocess.PIPE).communicate()[0]
-            mmcblk0p3 = mmcblk0p3.decode("utf-8").replace("\n", "")
-            #print(mmcblk0p3)
-            newLine = ("/dev/mmcblk0p3 : start="+ str(startNewPartition) + ", size="+ str(sectorsSizeNewPartition) + ", Id=83")
-            subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition"+ip+".part"],
-                             stdout=subprocess.PIPE).communicate()[0]
-            sendPartition = subprocess.Popen(["scp", "/tmp/tablePartition"+ip+".part", ip + ":/tmp/."], stdout=subprocess.PIPE)
-            time.sleep(3)
-            subprocess.Popen(("rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition"+ip+".part"), stdin=sendPartition.stdout).communicate()[0]
+        mmcblk0p3 = subprocess.Popen(["awk", "/^\/dev\/mmcblk0p3/{print $0}", "/tmp/tablePartition"+ip+".part"],
+                                     stdout=subprocess.PIPE).communicate()[0]
+        mmcblk0p3 = mmcblk0p3.decode("utf-8").replace("\n", "")
+        #print(mmcblk0p3)
+        newLine = ("/dev/mmcblk0p3 : start="+ str(startNewPartition) + ", size="+ str(sectorsSizeNewPartition) + ", Id=83")
+        subprocess.Popen(["sed", "-i", '/^\/dev\/mmcblk0p3/c' + newLine + "", "/tmp/tablePartition"+ip+".part"],
+                         stdout=subprocess.PIPE).communicate()[0]
+        sendPartition = subprocess.Popen(["scp", "/tmp/tablePartition"+ip+".part", ip + ":/tmp/."], stdout=subprocess.PIPE)
+        time.sleep(3)
+        subprocess.Popen(("rsh", ip, "sfdisk", "--force", "/dev/mmcblk0", "< /tmp/tablePartition"+ip+".part"), stdin=sendPartition.stdout).communicate()[0]
 
 
 
-            ## Tamaño de sector (en bytes) el famoso 512!!!!!!!!!!!!!!!!!!!!!!!
-            #tamSectors = subprocess.Popen(["rsh", ip, "blockdev", "--getss", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
-            ## Tamaño maximo de disco (en sectores) eso hay que multiplicarlo por 512
-            #secSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
-            # blockdev --getsize64 /dev/mmcblk0 ### El tamaño de la particion ya multiplicado (en bytes!!!!!!!!!!!!!)
-
-            return "Done"
-
-        else:
-            return "Invalid Token"
+        ## Tamaño de sector (en bytes) el famoso 512!!!!!!!!!!!!!!!!!!!!!!!
+        #tamSectors = subprocess.Popen(["rsh", ip, "blockdev", "--getss", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+        ## Tamaño maximo de disco (en sectores) eso hay que multiplicarlo por 512
+        #secSizek0 = subprocess.Popen(["rsh", ip, "blockdev", "--getsize", "/dev/mmcblk0"], stdout=subprocess.PIPE).communicate()[0]
+        # blockdev --getsize64 /dev/mmcblk0 ### El tamaño de la particion ya multiplicado (en bytes!!!!!!!!!!!!!)
 
 
 
     def formatFileSystemAndMount(self, token, ip):
 
-        checked = self.rP.checkLogin(token)
-        if (checked):
 
-            print("####################################### FORMAT PARTITION #############################################")
-            subprocess.Popen(["rsh", ip, "umount", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
-            return "Done"
+        print("####################################### FORMAT PARTITION #############################################")
+        subprocess.Popen(["rsh", ip, "umount", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["rsh", ip, "mkdir", "-p", "/mnt/img"], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["rsh", ip, "mkfs.ext4", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["rsh", ip, "mount", "-t", "ext4", "/dev/mmcblk0p3", "/mnt/img/"], stdout=subprocess.PIPE).communicate()[0]
 
-        else:
-            return "Invalid Token"
 
 
     def mountImgCompress(self, token, img):
         print("####################################### MOUNT IMG SERVER #############################################")
-        checked = self.rP.checkLogin(token)
-        if (checked):
-            subprocess.Popen(["umount", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
 
-            # Tamaño de bloque del sistema. Tambien lo podriamos hacer con el comando blockdev pero tenemos que
-            # saber tambien el nombre del dispositivo usado. (sda, hda, ...) Lo sacamos directamente de fdisk y la img
-            fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
-            tamBlock = subprocess.check_output(('awk', '/^Uni/{print $6}'), stdin=fdisk.stdout).decode("utf-8")
-            tamBlock = tamBlock.replace("\n","")
-            #print(tamBlock)
+        subprocess.Popen(["umount", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
 
-            # Debemos ejecutar de nuevo fdisk porque el flujo de datos no es persistente
-            # Obtener el inicio de sector de la particion dos de la imagen deseada
-            fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
-            startSectorsPartitionTwo = subprocess.check_output(('awk', '$1 ~ /img2/ { print $2}'),
-                                                               stdin=fdisk.stdout).decode("utf-8")
-            startSectorsPartitionTwo = startSectorsPartitionTwo.replace("\n", "")
-            #print(startSectorsPartitionTwo)
+        # Tamaño de bloque del sistema. Tambien lo podriamos hacer con el comando blockdev pero tenemos que
+        # saber tambien el nombre del dispositivo usado. (sda, hda, ...) Lo sacamos directamente de fdisk y la img
+        fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
+        tamBlock = subprocess.check_output(('awk', '/^Uni/{print $6}'), stdin=fdisk.stdout).decode("utf-8")
+        tamBlock = tamBlock.replace("\n","")
+        #print(tamBlock)
 
-            # Calculamos el numero de bytes desde donde se montara la imagen
-            subprocess.Popen(["mkdir", "-p", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)), "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
-            subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0] ## Espera 3 segundos para asegurarnos que se monta la particion
+        # Debemos ejecutar de nuevo fdisk porque el flujo de datos no es persistente
+        # Obtener el inicio de sector de la particion dos de la imagen deseada
+        fdisk = subprocess.Popen(('fdisk', '-l', img), stdout=subprocess.PIPE)
+        startSectorsPartitionTwo = subprocess.check_output(('awk', '$1 ~ /img2/ { print $2}'),
+                                                           stdin=fdisk.stdout).decode("utf-8")
+        startSectorsPartitionTwo = startSectorsPartitionTwo.replace("\n", "")
+        #print(startSectorsPartitionTwo)
 
-            # Copiar clave publica RSA
-            print("####################################### ADD RSA #############################################")
-            subprocess.Popen(["mkdir", "-p", "/mnt/img/two/root/.ssh"], stdout=subprocess.PIPE).communicate()[0]
-            subprocess.Popen(["cp", "/root/.ssh/id_rsa.pub", "/mnt/img/two/root/.ssh/authorized_keys"], stdout=subprocess.PIPE).communicate()[0]
-            # Eliminamos el /var/lib/dhcp/* para limpiar el registro de ip por DHCP
-            subprocess.Popen(["rm", "-r", "/mnt/img/two/var/lib/dhcp/"], stdout=subprocess.PIPE).communicate()[0]
+        # Calculamos el numero de bytes desde donde se montara la imagen
+        subprocess.Popen(["mkdir", "-p", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["mount", "-v", "-o", "offset=" + str(int(startSectorsPartitionTwo) * int(tamBlock)), "-t", "ext4", img, "/mnt/img/two"], stdout=subprocess.PIPE)
+        subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0] ## Espera 3 segundos para asegurarnos que se monta la particion
 
-            # Empaquetar y comprimit
-            print("####################################### COMPRESS IMG #############################################")
-            subprocess.Popen(['tar -czf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
-            print("####################################### FINISHED COMPRESS IMG #############################################")
-            return "Done"
-        else:
-            return "Invalid Token"
+        # Copiar clave publica RSA
+        print("####################################### ADD RSA #############################################")
+        subprocess.Popen(["mkdir", "-p", "/mnt/img/two/root/.ssh"], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["cp", "/root/.ssh/id_rsa.pub", "/mnt/img/two/root/.ssh/authorized_keys"], stdout=subprocess.PIPE).communicate()[0]
+        # Eliminamos el /var/lib/dhcp/* para limpiar el registro de ip por DHCP
+        subprocess.Popen(["rm", "-r", "/mnt/img/two/var/lib/dhcp/*-"], stdout=subprocess.PIPE).communicate()[0]
+
+        # Empaquetar y comprimit
+        print("####################################### COMPRESS IMG #############################################")
+        subprocess.Popen(['tar -czf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
+        print("####################################### FINISHED COMPRESS IMG #############################################")
+
 
 
 
     def sendAndDecompress(self, token, ip):
 
-        checked = self.rP.checkLogin(token)
-        if (checked):
 
-            # Envio de img comprimida y descompresion en la rpi
-            # Por defecto lee la imagen guardada en /mnt/img/ del servidor y la descomprime en el /mnt/img/ de la rpi
-            print("####################################### SEND IMG #############################################")
-            subprocess.Popen(["scp", "/tmp/imagen.tar.gz", ip + ":/mnt/img/."], stdout=subprocess.PIPE).communicate()[0]
-            print("####################################### DECOMPRESS #############################################")
-            subprocess.Popen(["rsh", ip, "tar", "-xf", "/mnt/img/imagen.tar.gz", "-C", "/mnt/img/."], stdin=subprocess.PIPE).communicate()[0]
+        # Envio de img comprimida y descompresion en la rpi
+        # Por defecto lee la imagen guardada en /mnt/img/ del servidor y la descomprime en el /mnt/img/ de la rpi
+        print("####################################### SEND IMG #############################################")
+        subprocess.Popen(["scp", "/tmp/imagen.tar.gz", ip + ":/mnt/img/."], stdout=subprocess.PIPE).communicate()[0]
+        print("####################################### DECOMPRESS #############################################")
+        subprocess.Popen(["rsh", ip, "tar", "-xf", "/mnt/img/imagen.tar.gz", "-C", "/mnt/img/."], stdin=subprocess.PIPE).communicate()[0]
 
-        else:
-            return "Invalid Token"
 
 
 
@@ -155,141 +137,111 @@ class SysRp(object):
     def changePartition(self, token, ip, rescuteMode=True):
 
         print("####################################### CHANGE PARTITION #############################################")
-        checked = self.rP.checkLogin(token)
-        if (checked):
 
-            if (rescuteMode):
-                # Cambia a Particion minima con Raspbian de 3 --+ 2
-                part = "\/dev\/mmcblk0p2"
-                subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p3|" + part + "|g' /boot/cmdline.txt"],
-                                       stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
-            else:
-                # Cambia a Particion nueva de 2 --+ 3
-                part = "\/dev\/mmcblk0p3"
-                subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
-                                       stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
-
-            return "Done"
-
+        if (rescuteMode):
+            # Cambia a Particion minima con Raspbian de 3 --+ 2
+            part = "\/dev\/mmcblk0p2"
+            subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p3|" + part + "|g' /boot/cmdline.txt"],
+                                   stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
         else:
-            return "Invalid Token"
+            # Cambia a Particion nueva de 2 --+ 3
+            part = "\/dev\/mmcblk0p3"
+            subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
+                                   stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
+
 
 
 
     def getHostname(self, token, ip):
 
-        checked = self.rP.checkLogin(token)
-        if(checked):
-            # Ejecutamos "rsh" para obtener el nombre cada raspberryPi a partir de su IP
-            host = subprocess.Popen(["rsh", ip, "hostname"], stdout=subprocess.PIPE).communicate()[0]
-            hostname = host.decode("utf-8").replace("\n", "")
-            # Para convertir de unicode a string
-            return unicodedata.normalize('NFKD', hostname).encode('ascii', 'ignore').decode("utf-8")
 
-        else:
-            return "Invalid Token"
+        # Ejecutamos "rsh" para obtener el nombre cada raspberryPi a partir de su IP
+        host = subprocess.Popen(["rsh", ip, "hostname"], stdout=subprocess.PIPE).communicate()[0]
+        hostname = host.decode("utf-8").replace("\n", "")
+        # Para convertir de unicode a string
+        return unicodedata.normalize('NFKD', hostname).encode('ascii', 'ignore').decode("utf-8")
+
 
 
 
     def setHostname(self, token, hostnameOld, hostnameNew):
 
-        checked = self.rP.checkLogin(token)
+        # Consultamos el JSON actual
+        generatedJson = self.generateJson(token)
 
-        if(checked):
-            # Consultamos el JSON actual
-            generatedJson = self.generateJson(token)
+        # Vamos hacer la traduccion de hostname -- ip.
+        # Recorremos el array de raspberry
+        for pi in generatedJson.get("raspberryPi"):
 
-            # Vamos hacer la traduccion de hostname -- ip.
-            # Recorremos el array de raspberry
-            for pi in generatedJson.get("raspberryPi"):
+            if(pi.get("hostname") == hostnameOld):
 
-                if(pi.get("hostname") == hostnameOld):
+                dnsIp = pi.get("ip")
 
-                    dnsIp = pi.get("ip")
+        # Cambia el /etc/hostname
+        subprocess.Popen(["rsh", "root@" + dnsIp, "echo", hostnameNew, " > /etc/hostname"],
+                         stdout=subprocess.PIPE).communicate()[0]
+        # Sustituye la linea que empieza por ^127.0.1.1 nombreViejo por 127.0.1.1 nombreNuevo
+        subprocess.Popen(["rsh", "root@" + dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "",
+                          "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
 
-            # Cambia el /etc/hostname
-            subprocess.Popen(["rsh", "root@" + dnsIp, "echo", hostnameNew, " > /etc/hostname"],
-                             stdout=subprocess.PIPE).communicate()[0]
-            # Sustituye la linea que empieza por ^127.0.1.1 nombreViejo por 127.0.1.1 nombreNuevo
-            subprocess.Popen(["rsh", "root@" + dnsIp, "sed", "-i", '/^127.0.1.1*/c\ 127.0.1.1\\\t' + hostnameNew + "",
-                              "/etc/hosts"], stdout=subprocess.PIPE).communicate()[0].decode("utf-8")
-
-            return "Done"
-        else:
-            return "Invalid Token"
 
 
 
 
     def generateJson(self, token):
 
+        listJson = []
+        # [1::] se elimina la cabecera
 
-        checked = self.rP.checkLogin(token)
-        if (checked):
+        for i in self.arp.getTable(token)[1::]:
+            # Los datos capturados de la tabla ARP son interpretados tipo "Bytes",
+            # Para interpretarlos tipo "String" usamos el decode(utf-8)
+            i = i.split()
+            # Si empieza por una ip
 
-            listJson = []
-            # [1::] se elimina la cabecera
+            if (re.match('^10(\.0){2}', i[0]) and re.match('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', i[2])):
 
-            for i in self.arp.getTable(token)[1::]:
-                # Los datos capturados de la tabla ARP son interpretados tipo "Bytes",
-                # Para interpretarlos tipo "String" usamos el decode(utf-8)
-                i = i.split()
-                # Si empieza por una ip
+                hostname = self.getHostname(token,i[0])
+                listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname})
 
-                if (re.match('^10(\.0){2}', i[0]) and re.match('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', i[2])):
+        # Incluir raspberryPi en el diccionario
+        concatJson = {'raspberryPi': ''}
+        concatJson['raspberryPi'] = listJson
 
-                    hostname = self.getHostname(token,i[0])
-                    listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname})
-
-            # Incluir raspberryPi en el diccionario
-            concatJson = {'raspberryPi': ''}
-            concatJson['raspberryPi'] = listJson
-
-            # Parsea a JSON
-            return concatJson
-
-        else:
-            return "Invalid Token"
+        # Parsea a JSON
+        return concatJson
 
 
     def storageJson(self, token):
 
         # Consultamos el JSON actual
         generatedJson = self.generateJson(token)
-        checked = self.rP.checkLogin(token)
 
-        if(checked):
 
-            # Con la opcion 'w' editamos el fichero. Si no existe, lo crea
-            with open('Static/start.json', 'w') as outfile:
-                json.dump(generatedJson, outfile)
+        # Con la opcion 'w' editamos el fichero. Si no existe, lo crea
+        with open('Static/start.json', 'w') as outfile:
+            json.dump(generatedJson, outfile)
 
-            return "Done"
-        else:
-            return "Invalid Token"
+
 
 
     def reboot(self, token, hostname):
         print("####################################### REBOOT #############################################")
-        checked = self.rP.checkLogin(token)
-        if(checked):
-            # Consultamos el JSON actual
-            generatedJson = self.generateJson(token)
 
-            # Vamos hacer la traduccion de hostname -- ip.
-            # Recorremos el array de raspberry
-            for pi in generatedJson.get("raspberryPi"):
+        # Consultamos el JSON actual
+        generatedJson = self.generateJson(token)
 
-                if (pi.get("hostname") == hostname):
-                    dnsIp2 = pi.get("ip")
+        # Vamos hacer la traduccion de hostname -- ip.
+        # Recorremos el array de raspberry
+        for pi in generatedJson.get("raspberryPi"):
 
-            subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0 ; exit'], stdout=subprocess.PIPE).communicate()[0]
+            if (pi.get("hostname") == hostname):
+                dnsIp2 = pi.get("ip")
 
-            print(self.checkMachine(dnsIp2))
+        subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0 ; exit'], stdout=subprocess.PIPE).communicate()[0]
 
-            return "Done"
-        else:
-            return "Invalid Token"
+        print(self.checkMachine(dnsIp2))
+
 
 
     def checkMachine(self, ip):
