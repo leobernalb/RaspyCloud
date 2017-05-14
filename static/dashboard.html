@@ -16,8 +16,9 @@
         <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link href="static/assets/plugins/material-preloader/css/materialPreloader.min.css" rel="stylesheet">
         <link href="static/assets/plugins/datatables/css/jquery.dataTables.min.css" rel="stylesheet">
+        <link href="static/assets/plugins/dropzone/dropzone.min.css" rel="stylesheet">
+        <link href="static/assets/plugins/dropzone/basic.min.css" rel="stylesheet">
 
-        	
         <!-- Theme Styles -->
         <link href="static/assets/css/alpha.min.css" rel="stylesheet" type="text/css"/>
         <link href="static/assets/css/custom.css" rel="stylesheet" type="text/css"/>
@@ -48,125 +49,11 @@
                     </div>
                 </nav>
             </header>
-            <div class="search-results">
-                <div class="container search-container">
-                    <div class="row">
-                        <div class="col s12 search-head">
-                            <div class="row">
-                                <div class="col s12">
-                                    <div class="left">
-                                        <p class="search-results-title">Quick search results</p>
-                                        <p class="search-filter left">
-                                            <input type="checkbox" class="filled-in" id="filled-in-box" checked/>
-                                            <label for="filled-in-box">Google search</label>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="res-not-found">No results found</div>
-                        </div>
-                        <div class="col s12 m4 search-result-container">
-                            <div class="card card-transparent">
-                                <div class="row valign-wrapper">
-                                    <div class="col s3">
-                                        <img src="static/assets/images/profile-image-1.png" alt="" class="circle responsive-img z-depth-1">
-                                    </div>
-                                    <div class="col s9">
-                                        <span class="search-result-text">
-                                            Search <span class="search-text search-result-highlight"></span><br><span class="secondary-search-text">Last active 2 days ago</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card card-transparent">
-                                <div class="row valign-wrapper">
-                                    <div class="col s3">
-                                        <img src="static/assets/images/profile-image-3.jpg" alt="" class="circle responsive-img z-depth-1">
-                                    </div>
-                                    <div class="col s9">
-                                        <span class="search-result-text">
-                                            News about <span class="search-text search-result-highlight"></span><br><span class="secondary-search-text">23 Blogs</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card card-transparent">
-                                <div class="row valign-wrapper">
-                                    <div class="col s3">
-                                        <img src="static/assets/images/profile-image.png" alt="" class="circle responsive-img z-depth-1">
-                                    </div>
-                                    <div class="col s9">
-                                        <span class="search-result-text">
-                                            Tom King (Works at <span class="search-text search-result-highlight"></span>)<br><span class="secondary-search-text">Avaible for freelance work</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col s12 m4 search-result-container">
-                            <div class="card card-transparent ">
-                                <div class="row valign-wrapper">
-                                    <div class="col s3">
-                                        <span class="z-depth-1 circle search-circle indigo lighten-1">F</span>
-                                    </div>
-                                    <div class="col s9">
-                                        <span class="search-result-text">
-                                            <span class="search-text search-result-highlight"></span> on Facebook<br><span class="secondary-search-text"><a href="#">View website</a></span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card card-transparent">
-                                <div class="row valign-wrapper">
-                                    <div class="col s3">
-                                        <span class="z-depth-1 circle search-circle light-blue lighten-1">T</span>
-                                    </div>
-                                    <div class="col s9">
-                                        <span class="search-result-text">
-                                            <span class="search-text search-result-highlight"></span> on Twitter<br><span class="secondary-search-text"><a href="#">View website</a></span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card card-transparent">
-                                <div class="row valign-wrapper">
-                                    <div class="col s3">
-                                        <span class="z-depth-1 circle search-circle red darken-1">G</span>
-                                    </div>
-                                    <div class="col s9">
-                                        <span class="search-result-text">
-                                            Google+ <span class="search-text search-result-highlight"></span><br><span class="secondary-search-text"><a href="#">View website</a></span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col s12 m4 search-result-container">
-                            <div class="card card-transparent">
-                                <div class="card-content first">
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sunt in culpa qui<span class="search-text search-result-highlight"></span> quis.</p>
-                                </div>
-                                <div class="card-action">
-                                    <span class="grey-text">Yesterday, 4:56 PM</span>
-                                </div>
-                            </div>
-                            <div class="card card-transparent">
-                                <div class="card-content">
-                                    <p>Sunt in culpa qui <span class="search-text search-result-highlight"></span> officia deserunt mollit anim id est laborum. officia deserunt mollit anim id est laborum officia deserunt mollit anim</p>
-                                </div>
-                                <div class="card-action">
-                                    <span class="grey-text">27 January 2016</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <aside id="slide-out" class="side-nav white fixed">
                 <div class="side-nav-wrapper">
                     <div class="sidebar-profile">
                         <div class="sidebar-profile-image">
-                            <img src="static/assets/images/profile-image.png" class="circle" alt="">
+                            <img src="static/assets/images/rpi-logo.png" class="circle" alt="">
                         </div>
                         <div class="sidebar-profile-info">
                             <a href="javascript:void(0);" class="account-settings-link">
@@ -189,6 +76,50 @@
                 </div>
             </aside>
             <main class="mn-inner">
+
+                <div class="row no-m-t no-m-b">
+                    <div class="col s12 m12 l4">
+                        <div class="card stats-card">
+                            <div class="card-content">
+                                <a id="deploy" class="waves-effect waves-light btn"><i class="material-icons left">cloud</i>Deploy</a>
+                            </div>
+                        </div>
+                    </div>
+                        <div class="col s12 m12 l4">
+                        <div class="card stats-card">
+                            <div class="card-content">
+                                <div class="card-options">
+                                    <form method="post" action="/api/v1/upload" class="dropzone dz-clickable">
+                                        <div class="dz-default dz-message">
+                                            <span>
+                                                <p>Upload</p>
+                                            </span>
+                                            <span>
+                                                <img src="static/assets/images/upload.png" alt="">
+                                            </span>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="progress stats-card-progress">
+                                <div class="determinate" style="width: 70%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col s12 m12 l4">
+                        <div class="card stats-card">
+                            <div class="card-content">
+                                <span class="card-title">Status</span>
+                                <span class="stats-counter"><span class="counter">23230</span><small>Last week</small></span>
+                                <div class="percent-info green-text">8% <i class="material-icons">trending_up</i></div>
+                            </div>
+                            <div class="progress stats-card-progress">
+                                <div class="determinate" style="width: 70%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col s12 m12 l12">
                         <div class="card">
@@ -224,7 +155,8 @@
         <script src="static/assets/js/alpha.min.js"></script>
         <script src="static/assets/js/pages/table-data.js"></script>
         <script type="text/javascript" src="static/assets/js/raspiCloud.js"></script>
+        <script src="static/assets/plugins/dropzone/dropzone.min.js"></script>
+        <script src="static/assets/plugins/dropzone/dropzone-amd-module.min.js"></script>
 
-        
     </body>
 </html>

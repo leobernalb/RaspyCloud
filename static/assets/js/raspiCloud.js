@@ -69,7 +69,7 @@ $(document).ready(function(){
                 if(data.result)
                     window.location.href = '/dashboard';
                 else
-                    alert("Pa tu casa")
+                    $('#loginError').show();
 
             },
             error: function (err){
@@ -78,6 +78,32 @@ $(document).ready(function(){
 
      });
 
+    });
+
+
+    $("#deploy").click(function(){
+          $.ajax({
+            url: '/api/v1/deploy',
+
+            data: JSON.stringify ({
+                "jsonrpc": "2.0",
+                "method": "run",
+                "params": {
+                    "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"
+                    },
+                "id": "run"
+            }),
+
+            type:"POST",
+            contentType: "application/json",
+
+            success:  function (data){
+            },
+            error: function (err){
+                console.log("Error");
+            }
+
+        });
     });
 
 

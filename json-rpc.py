@@ -57,7 +57,7 @@ class Run(object):
             generatedJson = self.sys.generateJson(token)
 
             # Ejecuta un hilo para montar y comprimir la imagen en el servidor
-            threadOverHead1 = ThreadOverHead(token, "/mnt/img/minimalRaspyCloud.img")
+            threadOverHead1 = ThreadOverHead(token, "/mnt/img/uploads/minimalRaspyCloud.img")
             threadOverHead1.start()
 
             for pi in generatedJson.get("raspberryPi"):

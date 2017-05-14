@@ -80,7 +80,9 @@ class SysRp(object):
 
 
 
-    def mountImgCompress(self, token, img):
+    def mountImgCompress(self, token):
+
+        img = "/mnt/img/uploads/fileUploaded.img"
         print("####################################### MOUNT IMG SERVER #############################################")
 
         subprocess.Popen(["umount", "/mnt/img/two"], stdout=subprocess.PIPE).communicate()[0]
@@ -110,7 +112,7 @@ class SysRp(object):
         subprocess.Popen(["mkdir", "-p", "/mnt/img/two/root/.ssh"], stdout=subprocess.PIPE).communicate()[0]
         subprocess.Popen(["cp", "/root/.ssh/id_rsa.pub", "/mnt/img/two/root/.ssh/authorized_keys"], stdout=subprocess.PIPE).communicate()[0]
         # Eliminamos el /var/lib/dhcp/* para limpiar el registro de ip por DHCP
-        subprocess.Popen(["rm", "-r", "/mnt/img/two/var/lib/dhcp/*-"], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["rm", "-r", "/mnt/img/two/var/lib/dhcp/"], stdout=subprocess.PIPE).communicate()[0]
 
         # Empaquetar y comprimit
         print("####################################### COMPRESS IMG #############################################")
@@ -148,6 +150,8 @@ class SysRp(object):
             part = "\/dev\/mmcblk0p3"
             subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
                                    stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
+
+        return "Done"
 
 
 
