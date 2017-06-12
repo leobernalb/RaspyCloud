@@ -21,8 +21,17 @@ class RaspberryDB(object):
             }
         )]
 
+    def searchStatus(self,collection=None,  ip=None):
+        return [ element for element in self._getCollection(collection).find(
+            {"ip": ip},{"status":""}
+        )]
+
     def insertGeneric(self,collection,data):
         self._getCollection(collection=collection).insert(dict(data))
 
     def deleteElement(self,collection,hash):
         return self._getCollection(collection=collection).find_one_and_delete({"hash": hash})
+
+    def updateOrCreate(self,collection,ip,status):
+        return self._getCollection(collection=collection).update({"ip": ip},{"ip": ip,"status":status}, upsert=True)
+

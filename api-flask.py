@@ -66,10 +66,6 @@ def upload_file():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8001, debug=True)
 
-#o = RpCloud()
-#print(o.checkPassword("c07f4789cd9b3338bf35ea21ff353f3bd181c528d8e980dd27fc0ee10143c7307b15bc796bf20ee0a9743a7d61ae2e0dc093ad034afc6a16b62f207060fe925b:d45774ad1dae49d48bcb795cb0d9372d", "abc123."))
+#o = SysRp()
+#print(o.generateJson("c07f4789cd9b3338bf35ea21ff353f3bd181c528d8e980dd27fc0ee10143c7307b15bc796bf20ee0a9743a7d61ae2e0dc093ad034afc6a16b62f207060fe925b:d45774ad1dae49d48bcb795cb0d9372d"))
 
-#o = RpCloud()
-#print(o.checkLogin("gema", "gemaeslamejor"))
-
-#print(o.login("gema", "gemaeslamejor"))

@@ -26,6 +26,10 @@ $(document).ready(function(){
                 row += '<td align="right"> ' + element.hostname + '</td>';
                 row += '<td align="right"> ' + element.ip + '</td>';
                 row += '<td align="right"> ' + element.mac + '</td>';
+                row += '<td align="right"> ' + element.diskSize + '</td>';
+                row += '<td align="right"> ' + element.diskAvail + '</td>';
+                row += '<td align="right"> ' + element.diskUse + '</td>';
+                row += '<td align="right"> ' + element.status + '</td>';
                 row += '<td align="right"> <a class="btn-floating waves-effect waves-light red"><i class="material-icons replay">replay</i></a> </td>';
                 row += '</tr>';
             });

@@ -1,4 +1,5 @@
 from subprocess import Popen, PIPE
+from Mongo.helper import RaspberryDB
 import subprocess
 from coremodules.rpCloud import RpCloud
 from coremodules.arp import Arp
@@ -11,10 +12,13 @@ class SysRp(object):
 
 
     def __init__(self):
+        self.conn = RaspberryDB()
         self.rP = RpCloud()
         self.arp = Arp()
 
     def createPartition(self, token, ip):
+        # Status # Creating partitions
+        self.conn.updateOrCreate(collection="status", ip=ip, status="Creating partitions")
 
         print("####################################### CREATE PARTITION #############################################")
 
@@ -70,7 +74,8 @@ class SysRp(object):
 
 
     def formatFileSystemAndMount(self, token, ip):
-
+        # Status # Formatting
+        self.conn.updateOrCreate(collection="status", ip=ip, status="Formatting")
 
         print("####################################### FORMAT PARTITION #############################################")
         subprocess.Popen(["rsh", ip, "umount", "/dev/mmcblk0p3"], stdout=subprocess.PIPE).communicate()[0]
@@ -81,6 +86,14 @@ class SysRp(object):
 
 
     def mountImgCompress(self, token):
+        # Status # Deploying
+        generatedJson = self.generateJson(token)
+
+        for pi in generatedJson.get("raspberryPi"):
+            self.conn.updateOrCreate(collection="status", ip=pi.get("ip"), status="Deploying")
+            # Eliminamos todos los status e Insertamos datos en Mongo dentro de la collection STATUS
+        #    self.conn.deleteDocuments(collection="status")
+         #   self.conn.insertGeneric(collection="status", data=data)
 
         img = "/mnt/img/uploads/fileUploaded.img"
         print("####################################### MOUNT IMG SERVER #############################################")
@@ -123,13 +136,16 @@ class SysRp(object):
 
 
     def sendAndDecompress(self, token, ip):
-
+        # Status # Receiving image
+        self.conn.updateOrCreate(collection="status", ip=ip, status="Receiving image")
 
         # Envio de img comprimida y descompresion en la rpi
         # Por defecto lee la imagen guardada en /mnt/img/ del servidor y la descomprime en el /mnt/img/ de la rpi
         print("####################################### SEND IMG #############################################")
         subprocess.Popen(["scp", "/tmp/imagen.tar.gz", ip + ":/mnt/img/."], stdout=subprocess.PIPE).communicate()[0]
         print("####################################### DECOMPRESS #############################################")
+        # Status # Decompress
+        self.conn.updateOrCreate(collection="status", ip=ip, status="Decompress")
         subprocess.Popen(["rsh", ip, "tar", "-xf", "/mnt/img/imagen.tar.gz", "-C", "/mnt/img/."], stdin=subprocess.PIPE).communicate()[0]
 
 
@@ -205,8 +221,10 @@ class SysRp(object):
 
             if (re.match('^10(\.0){2}', i[0]) and re.match('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', i[2])):
 
+                disk = self.disk(token, i[0])
                 hostname = self.getHostname(token,i[0])
-                listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname})
+                searchedStatus = self.conn.searchStatus(collection="status", ip=i[0])
+                listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname, 'diskSize': disk[0], 'diskAvail': disk[1], 'diskUse': disk[2], 'status': searchedStatus[0].get("status")})
 
         # Incluir raspberryPi en el diccionario
         concatJson = {'raspberryPi': ''}
@@ -214,6 +232,18 @@ class SysRp(object):
 
         # Parsea a JSON
         return concatJson
+
+
+    def disk(self, token, ip):
+
+        df = subprocess.Popen(['rsh', ip, 'df', '-h'], stdout=subprocess.PIPE)
+        diskSize = subprocess.check_output(("awk", "$6 ~ /^\/$/ {print $2}"), stdin=df.stdout).decode("utf-8").replace("\n","")
+        df = subprocess.Popen(['rsh', ip, 'df', '-h'], stdout=subprocess.PIPE)
+        diskAvail = subprocess.check_output(("awk", "$6 ~ /^\/$/ {print $4}"), stdin=df.stdout).decode("utf-8").replace("\n","")
+        df = subprocess.Popen(['rsh', ip, 'df', '-h'], stdout=subprocess.PIPE)
+        diskUse = subprocess.check_output(("awk", "$6 ~ /^\/$/ {print $5}"), stdin=df.stdout).decode("utf-8").replace("\n","")
+
+        return [diskSize, diskAvail, diskUse]
 
 
     def storageJson(self, token):
@@ -230,6 +260,7 @@ class SysRp(object):
 
 
     def reboot(self, token, hostname):
+
         print("####################################### REBOOT #############################################")
 
         # Consultamos el JSON actual
@@ -241,6 +272,8 @@ class SysRp(object):
 
             if (pi.get("hostname") == hostname):
                 dnsIp2 = pi.get("ip")
+                # Status # Rebooting
+                self.conn.updateOrCreate(collection="status", ip=dnsIp2, status="Rebooting")
 
         subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0 ; exit'], stdout=subprocess.PIPE).communicate()[0]
 
@@ -249,7 +282,8 @@ class SysRp(object):
 
 
     def checkMachine(self, ip):
-
+        # Status # Checking
+        self.conn.updateOrCreate(collection="status", ip=ip, status="Checking")
         print("####################################### MACHINE STATUS #############################################")
         # Hacemos 30 ping y si recibimos correctamente 5 o mas consideramos que la rpi esta "UP"
         ping = subprocess.Popen(["ping", "-c", "30", ip], stdout=subprocess.PIPE)
@@ -257,6 +291,8 @@ class SysRp(object):
 
         print(pingNum)
         if(int(pingNum) >= 5):
+            # Status # Installed
+            self.conn.updateOrCreate(collection="status", ip=ip, status="Installed")
             return "up"
         else:
             return "down"
