@@ -24,24 +24,24 @@ class Thread(threading.Thread):
         self.ip = ip
 
     def run(self):
-        self.o.createPartition(self.token, self.ip)
+        self.o.createPartition(self.ip)
         self.o.reboot(self.token, self.hostname)
-        self.o.formatFileSystemAndMount(self.token, self.ip)
+        self.o.formatFileSystemAndMount(self.ip)
         event.wait()
-        self.o.sendAndDecompress(self.token, self.ip)
-        self.o.changePartition(self.token, self.ip, False)
+        self.o.sendAndDecompress(self.ip)
+        self.o.changePartition(self.ip, False)
         print(self.o.reboot(self.token, self.hostname))
-        #print(self.o.checkMachine(self.ip))
 
 
 class ThreadRescuteMode(threading.Thread):
-    def __init__(self, token, hostname, ip):
+    def __init__(self, token, hostname, ip, mode):
         threading.Thread.__init__(self)
         self.o = SysRp()
         self.token = token
         self. hostname = hostname
         self.ip = ip
+        self.mode = mode
 
     def run(self):
-        self.o.changePartition(self.token, self.ip, True)
+        self.o.changePartition(self.ip, self.mode)
         print(self.o.reboot(self.token, self.hostname))

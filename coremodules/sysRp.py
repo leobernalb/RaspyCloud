@@ -16,7 +16,7 @@ class SysRp(object):
         self.rP = RpCloud()
         self.arp = Arp()
 
-    def createPartition(self, token, ip):
+    def createPartition(self, ip):
         # Status # Creating partitions
         self.conn.updateOrCreate(collection="status", ip=ip, status="Creating partitions")
 
@@ -73,7 +73,7 @@ class SysRp(object):
 
 
 
-    def formatFileSystemAndMount(self, token, ip):
+    def formatFileSystemAndMount(self, ip):
         # Status # Formatting
         self.conn.updateOrCreate(collection="status", ip=ip, status="Formatting")
 
@@ -127,7 +127,7 @@ class SysRp(object):
         # Eliminamos el /var/lib/dhcp/* para limpiar el registro de ip por DHCP
         subprocess.Popen(["rm", "-r", "/mnt/img/two/var/lib/dhcp/"], stdout=subprocess.PIPE).communicate()[0]
 
-        # Empaquetar y comprimit
+        # Empaquetar y comprimir
         print("####################################### COMPRESS IMG #############################################")
         subprocess.Popen(['tar -czf /tmp/imagen.tar.gz .'], shell=True, cwd='/mnt/img/two').wait()
         print("####################################### FINISHED COMPRESS IMG #############################################")
@@ -135,9 +135,9 @@ class SysRp(object):
 
 
 
-    def sendAndDecompress(self, token, ip):
+    def sendAndDecompress(self, ip):
         # Status # Receiving image
-        self.conn.updateOrCreate(collection="status", ip=ip, status="Receiving image")
+        self.conn.updateOrCreate(collection="status", ip=ip, status="Receiving data")
 
         # Envio de img comprimida y descompresion en la rpi
         # Por defecto lee la imagen guardada en /mnt/img/ del servidor y la descomprime en el /mnt/img/ de la rpi
@@ -152,9 +152,14 @@ class SysRp(object):
 
 
 
-    def changePartition(self, token, ip, rescuteMode=True):
+    def changePartition(self, ip, rescuteMode):
 
         print("####################################### CHANGE PARTITION #############################################")
+        # Parseo de string a boolean
+        if rescuteMode == 'true':
+            rescuteMode = True
+        elif rescuteMode == 'false':
+            rescuteMode = False
 
         if (rescuteMode):
             # Cambia a Particion minima con Raspbian de 3 --+ 2
@@ -166,13 +171,13 @@ class SysRp(object):
             part = "\/dev\/mmcblk0p3"
             subprocess.Popen(["rsh", ip, "sed -i 's|\/dev\/mmcblk0p2|" + part + "|g' /boot/cmdline.txt"],
                                    stdout=subprocess.PIPE).communicate()[0].decode("utf-8").replace("\n", "")
-
+        subprocess.Popen(["sleep", "3"], stdout=subprocess.PIPE).communicate()[0]  ## Espera 1 segundos para asegurarnos que se cambia la particion
         return "Done"
 
 
 
 
-    def getHostname(self, token, ip):
+    def getHostname(self, ip):
 
 
         # Ejecutamos "rsh" para obtener el nombre cada raspberryPi a partir de su IP
@@ -212,7 +217,6 @@ class SysRp(object):
 
         listJson = []
         # [1::] se elimina la cabecera
-
         for i in self.arp.getTable(token)[1::]:
             # Los datos capturados de la tabla ARP son interpretados tipo "Bytes",
             # Para interpretarlos tipo "String" usamos el decode(utf-8)
@@ -221,10 +225,14 @@ class SysRp(object):
 
             if (re.match('^10(\.0){2}', i[0]) and re.match('^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', i[2])):
 
-                disk = self.disk(token, i[0])
-                hostname = self.getHostname(token,i[0])
+                # Busca si no hay elemento creado en mongo, lo crea
+                if(self.conn.searchStatus(collection="status", ip=i[0]) == []):
+                    data = {"ip": i[0], "status": ""}
+                    self.conn.insertGeneric(collection="status", data=data)
+                disk = self.disk(i[0])
+                hostname = self.getHostname(i[0])
                 searchedStatus = self.conn.searchStatus(collection="status", ip=i[0])
-                listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname, 'diskSize': disk[0], 'diskAvail': disk[1], 'diskUse': disk[2], 'status': searchedStatus[0].get("status")})
+                listJson.append({'ip': i[0], 'mac': i[2], 'hostname': hostname, 'diskSize': disk[0], 'diskAvail': disk[1], 'diskUse': disk[2], 'status': searchedStatus[0].get('status')})
 
         # Incluir raspberryPi en el diccionario
         concatJson = {'raspberryPi': ''}
@@ -234,7 +242,7 @@ class SysRp(object):
         return concatJson
 
 
-    def disk(self, token, ip):
+    def disk(self, ip):
 
         df = subprocess.Popen(['rsh', ip, 'df', '-h'], stdout=subprocess.PIPE)
         diskSize = subprocess.check_output(("awk", "$6 ~ /^\/$/ {print $2}"), stdin=df.stdout).decode("utf-8").replace("\n","")
@@ -275,7 +283,7 @@ class SysRp(object):
                 # Status # Rebooting
                 self.conn.updateOrCreate(collection="status", ip=dnsIp2, status="Rebooting")
 
-        subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0 ; exit'], stdout=subprocess.PIPE).communicate()[0]
+        subprocess.Popen(["rsh", "root@" + dnsIp2, 'shutdown --reboot 0; exit'], stdout=subprocess.PIPE)
 
         print(self.checkMachine(dnsIp2))
 
@@ -296,51 +304,3 @@ class SysRp(object):
             return "up"
         else:
             return "down"
-
-
-#########################################
-################TEST#####################
-########################################
-## ENTRADA ##
-#rpc = JsonRpc()
-#rpc['getHostname'] = SysRp().getHostname
-#print(rpc({"jsonrpc": "2.0", "method": "getHostname", "params": {"ip": "10.0.0.11", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "getHostname"}))
-## SALIDA ##
-#{'jsonrpc': '2.0', 'result': 'rpi001', 'id': 'getHostname'}
-#{'jsonrpc': '2.0', 'id': 'getHostname', 'result': 'Invalid Token'}
-
-########################################
-## ENTRADA ##
-#rpc['getArpTable'] = Arp().getTable
-#rpc['generateJson'] = SysRp().generateJson
-#tableARP = rpc({"jsonrpc": "2.0", "method": "getArpTable", "params": {"token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "getArpTable"})
-#GeneratedJson = rpc({"jsonrpc": "2.0", "method": "generateJson", "params": {"token":"8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "generateJson"})
-#print(GeneratedJson)
-## SALIDA ##
-#{'result': '{"raspberryPi": [{"hostname": "rpi003", "ip": "10.0.0.14", "mac": "b8:27:eb:0c:48:42"}, {"hostname": "rpi002", "ip": "10.0.0.13", "mac": "b8:27:eb:53:3e:99"}, {"hostname": "rpi001", "ip": "10.0.0.11", "mac": "b8:27:eb:db:dd:97"}]}', 'jsonrpc': '2.0', 'id': 'generateJson'}
-##{'jsonrpc': '2.0', 'id': 'generateJson', 'result': 'Invalid Token'}
-
-########################################
-## ENTRADA ##
-#rpc['storageJson'] = SysRp().storageJson
-#print(rpc({"jsonrpc": "2.0", "method": "storageJson", "params": {"json": GeneratedJson, "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "storageJson"}))
-## SALIDA ##
-#{'id': 'storageJson', 'result': 'Done', 'jsonrpc': '2.0'}
-#{'jsonrpc': '2.0', 'id': 'storageJson', 'result': 'Invalid Token'}
-
-########################################
-## ENTRADA ##
-#rpc['setHostname'] = SysRp().setHostname
-#print(rpc({"jsonrpc": "2.0", "method": "setHostname", "params": {"hostnameOld": "rpi111", "hostnameNew": "rpi001", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "setHostname"}))
-## SALIDA ##
-#{'id': 'setHostname', 'result': 'Done', 'jsonrpc': '2.0'}
-#{'jsonrpc': '2.0', 'id': 'setHostname', 'result': 'Invalid Token'}
-
-########################################
-## ENTRADA ##
-#rpc['reboot'] = SysRp().reboot
-#print(rpc({"jsonrpc": "2.0", "method": "reboot", "params": {"hostname": "rpi111", "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"}, "id": "reboot"}))
-## SALIDA ##
-#{'id': 'reboot', 'result': 'Done', 'jsonrpc': '2.0'}
-#{'jsonrpc': '2.0', 'id': 'reboot', 'result': 'Invalid Token'}
-

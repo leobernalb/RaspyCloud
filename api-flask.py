@@ -21,13 +21,18 @@ def allowed_file(filename):
 
 jsonrpcRpiJson = JSONRPC(app, '/api/v1/rpiJson', site=JSONRPCSite(), enable_web_browsable_api=True)
 jsonrpcLogin = JSONRPC(app, '/api/v1/login', site=JSONRPCSite(), enable_web_browsable_api=True)
+jsonrpcRegister = JSONRPC(app, '/api/v1/register', site=JSONRPCSite(), enable_web_browsable_api=True)
 jsonrpcDeploy = JSONRPC(app, '/api/v1/deploy', site=JSONRPCSite(), enable_web_browsable_api=True)
 jsonrpcRescute = JSONRPC(app, '/api/v1/rescute', site=JSONRPCSite(), enable_web_browsable_api=True)
 
 ######################### JSON-RPC POST ##########################
 @jsonrpcLogin.method('login')
-def apiLogin(username, password):
-    return RpCloud().checkLogin(username, password)
+def apiLogin(email, password):
+    return RpCloud().checkLogin(email, password)
+
+@jsonrpcRegister.method('register')
+def apiRegister(firstName, lastName, email, password):
+    return RpCloud().register(firstName, lastName, email, password)
 
 @jsonrpcRpiJson.method('generateJson')
 def apiGenerateJson(token):
@@ -39,8 +44,8 @@ def apiRun(token):
     return "Done"
 
 @jsonrpcRescute.method('rescuteMode')
-def apiRescute(token):
-    Rescute(token)
+def apiRescute(token,rescuteMode):
+    Rescute(token, rescuteMode)
     return "Done"
 
 ##################### GET ##################################
@@ -65,7 +70,3 @@ def upload_file():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8001, debug=True)
-
-#o = SysRp()
-#print(o.generateJson("c07f4789cd9b3338bf35ea21ff353f3bd181c528d8e980dd27fc0ee10143c7307b15bc796bf20ee0a9743a7d61ae2e0dc093ad034afc6a16b62f207060fe925b:d45774ad1dae49d48bcb795cb0d9372d"))
-

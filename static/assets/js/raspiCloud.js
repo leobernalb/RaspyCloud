@@ -1,46 +1,50 @@
 $(document).ready(function(){
 
-  $.ajax({
-        url: '/api/v1/rpiJson',
+    // Carga tabla
+    $('#refresh').click(function(){
+           var cookies = document.cookie;
+           var token = cookies.split('=')[1]
+          $.ajax({
+                url: '/api/v1/rpiJson',
 
-        data: JSON.stringify ({
-            "jsonrpc": "2.0",
-            "method": "generateJson",
-            "params": {
-                "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"
+                data: JSON.stringify ({
+                    "jsonrpc": "2.0",
+                    "method": "generateJson",
+                    "params": {
+                        "token": token
+                        },
+                    "id": "generateJson"
+                }),
+
+                type:"POST",
+                contentType: "application/json",
+
+                success:  function (data){
+
+                    var row = '';
+
+                    // Body
+                    $.each(data.result.raspberryPi, (index, element) => {
+                        row += '<tr align="right">';
+
+                        row += '<td align="right"> ' + element.hostname + '</td>';
+                        row += '<td align="right"> ' + element.ip + '</td>';
+                        row += '<td align="right"> ' + element.mac + '</td>';
+                        row += '<td align="right"> ' + element.diskSize + '</td>';
+                        row += '<td align="right"> ' + element.diskAvail + '</td>';
+                        row += '<td align="right"> ' + element.diskUse + '</td>';
+                        row += '<td align="right"> ' + element.status + '</td>';
+                        row += '</tr>';
+                    });
+
+                    $("#tableBody").html(row);
+
                 },
-            "id": "generateJson"
-        }),
+                error: function (err){
+                    console.log("Error");
+                }
 
-        type:"POST",
-        contentType: "application/json",
-
-        success:  function (data){
-
-            var row = '';
-
-            // Body
-            $.each(data.result.raspberryPi, (index, element) => {
-                row += '<tr align="right">';
-
-                row += '<td align="right"> ' + element.hostname + '</td>';
-                row += '<td align="right"> ' + element.ip + '</td>';
-                row += '<td align="right"> ' + element.mac + '</td>';
-                row += '<td align="right"> ' + element.diskSize + '</td>';
-                row += '<td align="right"> ' + element.diskAvail + '</td>';
-                row += '<td align="right"> ' + element.diskUse + '</td>';
-                row += '<td align="right"> ' + element.status + '</td>';
-                row += '<td align="right"> <a class="btn-floating waves-effect waves-light red"><i class="material-icons replay">replay</i></a> </td>';
-                row += '</tr>';
             });
-
-            $("#tableBody").html(row);
-
-
-        },
-        error: function (err){
-            console.log("Error");
-        }
 
     });
 
@@ -48,9 +52,10 @@ $(document).ready(function(){
 
      $('#submitLogin').submit(function (event) {
         event.preventDefault(); // stop submit form
-        var user = $("#username").val();
+        var email = $("#username").val();
         var pass = $("#password").val();
 
+        // Autenticacion Login
         $.ajax({
             url: '/api/v1/login',
 
@@ -58,7 +63,7 @@ $(document).ready(function(){
                 "jsonrpc": "2.0",
                 "method": "login",
                 "params": {
-                    "username": user,
+                    "email": email,
                     "password": pass
                     },
                 "id": "login"
@@ -69,23 +74,28 @@ $(document).ready(function(){
 
             success:  function (data){
                 // Redirect to dashboard.html if login == TRUE
-                console.log(data)
-                if(data.result)
+                if(data.result){
+                    var token = data.result;
+                    document.cookie = "token="+encodeURIComponent( token ) + " ; path=/"
                     window.location.href = '/dashboard';
-                else
+                }else{
                     $('#loginError').show();
+                }
 
             },
             error: function (err){
                 console.log("Error");
             }
+        });
 
-     });
+
 
     });
 
-
+    // Despliegue
     $("#deploy").click(function(){
+          var cookies = document.cookie;
+          var token = cookies.split('=')[1]
           $.ajax({
             url: '/api/v1/deploy',
 
@@ -93,7 +103,7 @@ $(document).ready(function(){
                 "jsonrpc": "2.0",
                 "method": "run",
                 "params": {
-                    "token": "8d8be393a73c16638467f3f6e8a35be6e1b12a22281ebac5dc26ef51a6c443d1a96e82eae011c4f6b2544dbdbae0600839df283847ae39925298a7ca6ea27992:387a45b2c2ec4bf880637f49993bbc35"
+                    "token": token
                     },
                 "id": "run"
             }),
@@ -110,6 +120,82 @@ $(document).ready(function(){
         });
     });
 
+    // Cambio de Modo
+    $("select#myselected").change(function(){
+        var mode = $(this).children(":selected").val()
+        var cookies = document.cookie;
+        var token = cookies.split('=')[1]
+       $.ajax({
+            url: '/api/v1/rescute',
+
+            data: JSON.stringify ({
+                "jsonrpc": "2.0",
+                "method": "rescuteMode",
+                "params": {
+                    "rescuteMode": mode,
+                    "token": token
+                    },
+                "id": "rescuteMode"
+            }),
+
+            type:"POST",
+            contentType: "application/json",
+
+            success:  function (data){
+            },
+            error: function (err){
+                console.log("Error");
+            }
+
+    });
+   });
+
+    // Logout
+    $("#signout").click(function(){
+          document.cookie = "token=; max-age=0"
+          var cookies = document.cookie;
+          window.location.href = '/';
+
+          console.log(cookies)
+    });
+
+    // Registro
+     $('#submitRegister').submit(function (event) {
+        event.preventDefault(); // stop submit form
+        var firstName = $("#first_name").val();
+        var lastName = $("#last_name").val();
+        var email = $("#email").val();
+        var password = $("#passwordRegister").val();
+
+         $.ajax({
+            url: '/api/v1/register',
+
+            data: JSON.stringify ({
+                "jsonrpc": "2.0",
+                "method": "register",
+                "params": {
+                    "firstName": firstName,
+                    "lastName": lastName,
+                    "email": email,
+                    "password": password
+                    },
+                "id": "register"
+            }),
+
+            type:"POST",
+            contentType: "application/json",
+
+            success:  function (data){
+                alert("Registrado correctamente");
+
+            },
+            error: function (err){
+                console.log("Error");
+            }
+
+     });
+
+    });
 
 
 });

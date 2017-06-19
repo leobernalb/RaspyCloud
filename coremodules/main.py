@@ -31,20 +31,20 @@ class Run(object):
 
 
 class Rescute(object):
-    def __init__(self, token):
+    def __init__(self, token, mode):
         self.rP = RpCloud()
         self.arp = Arp()
         self.sys = SysRp()
         # Inicia la app
-        self.start(token)
+        self.start(token, mode)
 
-    def start(self, token):
+    def start(self, token, mode):
 
         # Consultamos el JSON actual (peticion ARP)
         generatedJson = self.sys.generateJson(token)
 
         for pi in generatedJson.get("raspberryPi"):
             # Crea un hilo por cada raspberryPi
-            hThreadRescute = ThreadRescuteMode(token, pi.get("hostname"), pi.get("ip"))
+            hThreadRescute = ThreadRescuteMode(token, pi.get("hostname"), pi.get("ip"), mode)
             hThreadRescute.start()
         return "Done"

@@ -40,11 +40,6 @@
                         <div class="header-title col s3">
                             <span class="chapter-title">RaspiCloud</span>
                         </div>
-                        <ul class="right col s9 m3 nav-right-menu">
-                            <li><a href="javascript:void(0)" data-activates="chat-sidebar" class="chat-button show-on-large"><i class="material-icons">more_vert</i></a></li>
-                            <li class="hide-on-small-and-down"><a href="javascript:void(0)" data-activates="dropdown1" class="dropdown-button dropdown-right show-on-large"><i class="material-icons">notifications_none</i><span class="badge">4</span></a></li>
-                            <li class="hide-on-med-and-up"><a href="javascript:void(0)" class="search-toggle"><i class="material-icons">search</i></a></li>
-                        </ul>
 
                     </div>
                 </nav>
@@ -65,7 +60,7 @@
                     <div class="sidebar-account-settings">
                         <ul>
                             <li class="no-padding">
-                                <a class="waves-effect waves-grey"><i class="material-icons">exit_to_app</i>Sign Out</a>
+                                <a id="signout" class="waves-effect waves-grey"><i class="material-icons">exit_to_app</i>Sign Out</a>
                             </li>
                         </ul>
                     </div>
@@ -78,10 +73,13 @@
             <main class="mn-inner">
 
                 <div class="row no-m-t no-m-b">
-                    <div class="col s12 m12 l4">
+                    <div id="button-deploy" class="col s12 m12 l4">
                         <div class="card stats-card">
-                            <div class="card-content">
+                            <div id="box-deploy" class="card-content">
                                 <a id="deploy" class="waves-effect waves-light btn"><i class="material-icons left">cloud</i>Deploy</a>
+                            </div>
+                            <div class="progress stats-card-progress">
+                                <div class="determinate" style="width: 70%"></div>
                             </div>
                         </div>
                     </div>
@@ -91,9 +89,6 @@
                                 <div class="card-options">
                                     <form method="post" action="/api/v1/upload" class="dropzone dz-clickable">
                                         <div class="dz-default dz-message">
-                                            <span>
-                                                <p>Upload</p>
-                                            </span>
                                             <span>
                                                 <img src="static/assets/images/upload.png" alt="">
                                             </span>
@@ -107,11 +102,15 @@
                         </div>
                     </div>
                     <div class="col s12 m12 l4">
-                        <div class="card stats-card">
-                            <div class="card-content">
-                                <span class="card-title">Status</span>
-                                <span class="stats-counter"><span class="counter">23230</span><small>Last week</small></span>
-                                <div class="percent-info green-text">8% <i class="material-icons">trending_up</i></div>
+                        <div id="mode" class="card stats-card">
+                            <div id="linea" class="card-content">
+                                <span class="card-title">Mode</span>
+                                  <div class="input-field col s12">
+                                    <select id="myselected">
+                                        <option value="false">Deployment</option>
+                                        <option value="true">Rescute Mode</option>
+                                    </select>
+                                  </div>
                             </div>
                             <div class="progress stats-card-progress">
                                 <div class="determinate" style="width: 70%"></div>
@@ -125,6 +124,9 @@
                         <div class="card">
                             <div class="card-content">
                                 <span class="card-title">Cluster Raspberry Pi</span>
+                                <div id="refresh" class="card-content">
+                                    <a class="waves-effect waves-light btn"><i class="material-icons left">loop</i>Refresh</a>
+                                </div>
                                 <table id="example" class="display responsive-table datatable-example">
                                     <thead>
                                         <tr>
@@ -135,7 +137,6 @@
                                             <th>Disk Avail</th>
                                             <th>Disk Use</th>
                                             <th>Status</th>
-                                            <th>Reboot</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tableBody">

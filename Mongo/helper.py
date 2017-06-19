@@ -14,10 +14,10 @@ class RaspberryDB(object):
     def searchAll(self,collection=None):
         return [ element for element in self._getCollection(collection).find()]
 
-    def searchLogin(self,collection=None,  user=None):
+    def searchLogin(self,collection=None,  email=None):
         return [ element for element in self._getCollection(collection).find(
             {
-                "user": user
+                "email": email
             }
         )]
 
